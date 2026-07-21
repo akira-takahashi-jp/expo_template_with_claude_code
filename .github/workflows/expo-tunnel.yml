@@ -1,0 +1,122 @@
+name: Expo Tunnel
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      # 開発ブランチ。develop 以外を使うなら書き換えてください（`/setup-template` でも設定可）。
+      - develop
+
+concurrency:
+  # Fixed group name (not scoped by branch/ref) so starting this workflow
+  # from anywhere always cancels any other in-flight run of it.
+  group: expo-tunnel
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  # ⚠️ SETUP REQUIRED — 下の2つはこのテンプレートのプレースホルダです。
+  # Claude Code で `/setup-template` を実行するか、手動で置き換えてください。
+  # 置き換えないままだと、通知ステップが実行時に失敗します。
+  #
+  # トンネル準備完了時に各ランがコメントするトラッキング用 Issue の番号。
+  STATUS_ISSUE_NUMBER: REPLACE_WITH_ISSUE_NUMBER
+  # 通知のメンション先となる自分の GitHub ユーザー名。
+  NOTIFY_USER: REPLACE_WITH_GITHUB_USERNAME
+
+jobs:
+  tunnel:
+    runs-on: ubuntu-latest
+    # GitHub caps hosted-runner jobs at 360 minutes; stay under that so the
+    # job ends itself cleanly instead of being force-killed.
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Expo tunnel and notify via GitHub issue comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -u
+          LOG_FILE=/tmp/expo-tunnel.log
+          NGROK_API=http://127.0.0.1:4040/api/tunnels
+
+          # CI=true (set by Actions) disables Metro's watch mode; override so
+          # live reload works over the tunnel.
+          CI=false npx expo start --tunnel > "$LOG_FILE" 2>&1 &
+          EXPO_PID=$!
+
+          # The exp:// URL is read from ngrok's local inspection API, not by
+          # grepping Expo CLI's own log output: since stdout isn't a TTY here,
+          # Expo CLI skips printing the QR code / URL line entirely, so that
+          # text never appears in the log (confirmed against a real run).
+          elapsed=0
+          timeout_seconds=180
+          poll_interval=3
+          url=""
+          while [ "$elapsed" -lt "$timeout_seconds" ]; do
+            public_url=$(curl -s "$NGROK_API" 2>/dev/null | node -e "
+              let data = '';
+              process.stdin.on('data', (c) => (data += c));
+              process.stdin.on('end', () => {
+                try {
+                  const parsed = JSON.parse(data || '{}');
+                  const tunnels = parsed.tunnels || [];
+                  const tunnel = tunnels.find((t) => t.proto === 'https') || tunnels[0];
+                  if (tunnel && tunnel.public_url) process.stdout.write(tunnel.public_url);
+                } catch (e) {}
+              });
+            " 2>/dev/null)
+            if [ -n "$public_url" ]; then
+              url="exp://$(printf '%s' "$public_url" | sed -E 's#^https?://##')"
+              break
+            fi
+            sleep "$poll_interval"
+            elapsed=$((elapsed + poll_interval))
+          done
+
+          if [ -z "$url" ]; then
+            echo "::error::Timed out waiting for the Expo tunnel to become ready"
+            cat "$LOG_FILE"
+            kill "$EXPO_PID" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "Tunnel ready: $url"
+          {
+            echo "### Expo tunnel is ready"
+            echo ""
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          qr_image_url="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$url")"
+          comment_body=$(node -e "
+            const [url, qr, runUrl, notifyUser] = process.argv.slice(1);
+            console.log([
+              '@' + notifyUser + ' :iphone: **Expo tunnel is ready!**',
+              '',
+              '\`' + url + '\`',
+              '',
+              '![Expo Go QR code](' + qr + ')',
+              '',
+              '[View Actions run](' + runUrl + ')',
+            ].join('\n'));
+          " "$url" "$qr_image_url" "$RUN_URL" "$NOTIFY_USER")
+
+          gh issue comment "$STATUS_ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$comment_body"
+
+          # Keep this step (and the tunnel) alive until the job timeout hits
+          # or the run is cancelled from the Actions UI.
+          wait "$EXPO_PID"
