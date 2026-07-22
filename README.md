@@ -42,6 +42,27 @@ Codespaces / devcontainer は使いません（PAT 不要・課金なしで Acti
 5. secret や PAT の追加設定は不要。`gh` はランナーにプリインストール済みで、
    ワークフロー自身の `permissions: issues: write` だけで Issue にコメントできる。
 
+## トラブルシューティング
+
+### Actions 実行時に `403 Resource not accessible by integration`
+
+`expo-tunnel.yml` は Issue にコメントするため `permissions: issues: write` を
+宣言していますが、リポジトリ（または Organization）側の設定でワークフローに
+許可する権限の上限が「読み取りのみ」に絞られていると、ワークフロー内の
+`permissions` 指定は無視されてこのエラーになります。
+
+対処法：
+
+1. リポジトリの **Settings → Actions → General** を開く。
+2. **Workflow permissions** セクションで
+   **「Read and write permissions」** を選択し、Save する。
+3. Organization 側で Actions のデフォルト権限が制限されている場合は、
+   Organization の **Settings → Actions → General** でも同様に確認する
+   （個人アカウント配下のリポジトリではこの項目は無い）。
+
+設定変更後、ワークフローを再実行（Actions タブから Re-run、または再度
+push / `/tunnel`）すれば通るはずです。
+
 ## Expo SDK のバージョン固定について（重要）
 
 **最新の Expo SDK は使わないこと。** App Store 版の Expo Go は最新 SDK に
@@ -67,11 +88,14 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 
 このテンプレートには、スマホからの開発を助けるスキルが同梱されています。
 
-| スキル | 用途 |
-| --- | --- |
-| `/setup-template` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更） |
-| `/tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） |
-| `/sdk-check` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 |
+| スキル | 用途 | 自然文での呼び出し例 |
+| --- | --- | --- |
+| `/setup-template` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更） | 「セットアップして」「このテンプレートを初期化して」 |
+| `/tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/sdk-check` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
+
+スラッシュコマンドを直接使わなくても、上記のような自然な日本語の指示で
+Claude Code が該当スキルを判断して実行します。
 
 ## ディレクトリ構成
 
