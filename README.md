@@ -46,12 +46,24 @@ Codespaces / devcontainer は使いません（PAT 不要・課金なしで Acti
 
 ### Actions 実行時に `403 Resource not accessible by integration`
 
-`expo-tunnel.yml` は Issue にコメントするため `permissions: issues: write` を
-宣言していますが、リポジトリ（または Organization）側の設定でワークフローに
-許可する権限の上限が「読み取りのみ」に絞られていると、ワークフロー内の
-`permissions` 指定は無視されてこのエラーになります。
+このエラーは「呼び出し元の integration（App／トークン）に、その操作を行う
+権限が無い」ことを示します。Claude Code on the web／モバイルから GitHub と
+連携している場合、Issue 作成やワークフロー起動などの操作は実体として
+**「Claude」GitHub App のインストール権限**で行われるため、まずここを疑う。
 
-対処法：
+1. GitHub の **Settings → Applications → Installed GitHub Apps**
+   （Organization リポジトリなら Organization の **Settings → GitHub Apps**）
+   を開く。
+2. 「Claude」アプリの **Configure** を開き、**Repository permissions** で
+   `Issues: Read and write` / `Contents: Read and write` /
+   `Actions: Read and write` が許可されているか確認し、不足していれば
+   追加する。
+3. 対象リポジトリがアプリのアクセス範囲（All repositories／Only select
+   repositories）に含まれているかも確認する。
+
+上記を見直しても直らない場合、`expo-tunnel.yml` 内の `gh issue comment` は
+ワークフロー自身の `GITHUB_TOKEN` で実行されるため、こちらの権限が原因の
+こともある：
 
 1. リポジトリの **Settings → Actions → General** を開く。
 2. **Workflow permissions** セクションで
