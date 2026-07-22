@@ -101,21 +101,25 @@ jobs:
             echo "$url"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          qr_image_url="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$url")"
-          comment_body=$(node -e "
-            const [url, qr, runUrl, notifyUser] = process.argv.slice(1);
-            console.log([
-              '@' + notifyUser + ' :iphone: **Expo tunnel is ready!**',
-              '',
-              '\`' + url + '\`',
-              '',
-              '![Expo Go QR code](' + qr + ')',
-              '',
-              '[View Actions run](' + runUrl + ')',
-            ].join('\n'));
-          " "$url" "$qr_image_url" "$RUN_URL" "$NOTIFY_USER")
+          if [ "$STATUS_ISSUE_NUMBER" = "REPLACE_WITH_ISSUE_NUMBER" ] || [ "$NOTIFY_USER" = "REPLACE_WITH_GITHUB_USERNAME" ]; then
+            echo "::notice::STATUS_ISSUE_NUMBER / NOTIFY_USER is not configured yet (still the template placeholder) — skipping the issue comment notification. Run \`/setup-template\` or edit the env block in this workflow to enable it. Check the job summary above for the exp:// URL instead."
+          else
+            qr_image_url="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$url")"
+            comment_body=$(node -e "
+              const [url, qr, runUrl, notifyUser] = process.argv.slice(1);
+              console.log([
+                '@' + notifyUser + ' :iphone: **Expo tunnel is ready!**',
+                '',
+                '\`' + url + '\`',
+                '',
+                '![Expo Go QR code](' + qr + ')',
+                '',
+                '[View Actions run](' + runUrl + ')',
+              ].join('\n'));
+            " "$url" "$qr_image_url" "$RUN_URL" "$NOTIFY_USER")
 
-          gh issue comment "$STATUS_ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$comment_body"
+            gh issue comment "$STATUS_ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$comment_body"
+          fi
 
           # Keep this step (and the tunnel) alive until the job timeout hits
           # or the run is cancelled from the Actions UI.
