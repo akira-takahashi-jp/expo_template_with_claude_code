@@ -42,6 +42,39 @@ Codespaces / devcontainer は使いません（PAT 不要・課金なしで Acti
 5. secret や PAT の追加設定は不要。`gh` はランナーにプリインストール済みで、
    ワークフロー自身の `permissions: issues: write` だけで Issue にコメントできる。
 
+## トラブルシューティング
+
+### Actions 実行時に `403 Resource not accessible by integration`
+
+このエラーは「呼び出し元の integration（App／トークン）に、その操作を行う
+権限が無い」ことを示します。Claude Code on the web／モバイルから GitHub と
+連携している場合、Issue 作成やワークフロー起動などの操作は実体として
+**「Claude」GitHub App のインストール権限**で行われるため、まずここを疑う。
+
+1. GitHub の **Settings → Applications → Installed GitHub Apps**
+   （Organization リポジトリなら Organization の **Settings → GitHub Apps**）
+   を開く。
+2. 「Claude」アプリの **Configure** を開き、**Repository permissions** で
+   `Issues: Read and write` / `Contents: Read and write` /
+   `Actions: Read and write` が許可されているか確認し、不足していれば
+   追加する。
+3. 対象リポジトリがアプリのアクセス範囲（All repositories／Only select
+   repositories）に含まれているかも確認する。
+
+上記を見直しても直らない場合、`expo-tunnel.yml` 内の `gh issue comment` は
+ワークフロー自身の `GITHUB_TOKEN` で実行されるため、こちらの権限が原因の
+こともある：
+
+1. リポジトリの **Settings → Actions → General** を開く。
+2. **Workflow permissions** セクションで
+   **「Read and write permissions」** を選択し、Save する。
+3. Organization 側で Actions のデフォルト権限が制限されている場合は、
+   Organization の **Settings → Actions → General** でも同様に確認する
+   （個人アカウント配下のリポジトリではこの項目は無い）。
+
+設定変更後、ワークフローを再実行（Actions タブから Re-run、または再度
+push / `/tunnel`）すれば通るはずです。
+
 ## Expo SDK のバージョン固定について（重要）
 
 **最新の Expo SDK は使わないこと。** App Store 版の Expo Go は最新 SDK に
@@ -67,11 +100,14 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 
 このテンプレートには、スマホからの開発を助けるスキルが同梱されています。
 
-| スキル | 用途 |
-| --- | --- |
-| `/setup-template` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更） |
-| `/tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） |
-| `/sdk-check` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 |
+| スキル | 用途 | 自然文での呼び出し例 |
+| --- | --- | --- |
+| `/setup-template` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更） | 「セットアップして」「このテンプレートを初期化して」 |
+| `/tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/sdk-check` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
+
+スラッシュコマンドを直接使わなくても、上記のような自然な日本語の指示で
+Claude Code が該当スキルを判断して実行します。
 
 ## ディレクトリ構成
 
