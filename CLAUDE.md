@@ -81,6 +81,45 @@ Expo Go ビルドが 2026 年 5 月頃から Apple App Store の審査で止ま�
 新しいプロジェクトを始める前にこの状況を必ず再確認すること —— これを読む
 頃には状況はおそらく変わっている。
 
+## Supabase 対応（バックエンドが必要なとき）
+
+バックエンド（DB / Auth / Storage）が必要になったら Supabase を使う。
+テンプレートの基本ファイルには何も先回りして追加していない —— オプトインの
+2スキルで完結する：
+
+- **`/supabase-setup`**（一度きり）—— Supabase プロジェクトを CLI で作成し、
+  `supabase link` した上で `@supabase/supabase-js` クライアントを配線する。
+- **`/supabase-migrate`**（繰り返し使う）—— マイグレーション SQL を書いて
+  リモート DB に `db push` し、`lib/database.types.ts` を再生成する。
+
+立ち上げ手順（全て CLI、詳細は `/supabase-setup` スキル参照）：
+
+```
+スマホのブラウザで PAT 発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
+supabase projects create <name> --org-id <id> --db-password <pw>
+supabase init でローカルに supabase/ と config.toml 生成
+supabase link --project-ref <ref>
+マイグレーション書く → supabase db push
+supabase gen types typescript で型生成 → Expo 側に取り込み
+```
+
+PAT（`SUPABASE_ACCESS_TOKEN`）の取得手順は README の「Supabase を使う場合」
+を参照。**トークンをチャットに直接貼り付けさせないこと** —— 会話ログに残って
+しまうため、この Claude Code 環境の環境変数として設定してもらう。
+
+生成される主なファイル（すべて `/supabase-setup` / `/supabase-migrate` 実行時
+にのみ作られる）：
+
+- `supabase/`（`config.toml` とマイグレーション SQL）
+- `.env`（`.gitignore` 対象、URL とキーのみ。コミットしない）
+- `.env.example`（コミット対象。プレースホルダのみ）
+- `lib/supabase.ts`（クライアント）／ `lib/database.types.ts`（生成された型）
+
+**`EXPO_PUBLIC_` 接頭辞が付いた環境変数だけが Expo のバンドルに埋め込まれる**。
+このため `.env` に置くのは `anon` / `publishable` キーのみとし、
+`service_role` キーなど秘密情報は絶対に `EXPO_PUBLIC_` 変数にしないこと
+（クライアント側から丸見えになる）。
+
 ## 動作確認
 
 このテンプレートは **PC を前提にしない**（スマホ + Claude Code のみ）。
@@ -100,3 +139,9 @@ Expo Go ビルドが 2026 年 5 月頃から Apple App Store の審査で止ま�
   「アプリを実機で動かしたい」「トンネルを立てて」等で使う。
 - **`/sdk-check`** — 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して
   固定する。新規プロジェクト開始前や「incompatible」エラー時に使う。
+- **`/supabase-setup`** — Supabase プロジェクトを CLI で作成・リンクし、
+  クライアントを配線する（一度きり）。「Supabase を使いたい」「バックエンドが
+  欲しい」等で使う。
+- **`/supabase-migrate`** — マイグレーション SQL を書いてリモート DB に push し、
+  型を再生成する（繰り返し使う）。「テーブルを追加して」「マイグレーション
+  実行して」等で使う。

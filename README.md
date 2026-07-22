@@ -86,6 +86,58 @@ push / `/tunnel`）すれば通るはずです。
 現在このテンプレートは **SDK 54** に固定しています（2026-07 時点。SDK 55 の
 Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE.md` を参照。
 
+## Supabase を使う場合（オプション）
+
+バックエンド（DB / Auth / Storage）が必要なら Supabase を追加できます。
+テンプレートの基本ファイルには何も先回りして追加していません。次の2つの
+スキルを実行したときだけ、関連ファイル・依存が増えます。
+
+- `/supabase-setup` — Supabase プロジェクトを CLI で作成・リンクし、
+  `@supabase/supabase-js` クライアントを配線する（一度きり）。
+- `/supabase-migrate` — マイグレーション SQL を書いてリモート DB に push し、
+  TypeScript の型を再生成する（繰り返し使う）。
+
+立ち上げ手順（全て CLI）：
+
+```
+スマホのブラウザで PAT 発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
+supabase projects create <name> --org-id <id> --db-password <pw>
+supabase init でローカルに supabase/ と config.toml 生成
+supabase link --project-ref <ref>
+マイグレーション書く → supabase db push
+supabase gen types typescript で型生成 → Expo 側に取り込み
+```
+
+### Supabase PAT（アクセストークン）の取得手順
+
+1. スマホのブラウザで https://supabase.com/dashboard/account/tokens を開く
+   （Supabase アカウントにログイン）。
+2. 「Generate new token」をタップする。
+3. トークン名を入力する（例: `claude-code-mobile` など、用途がわかる名前に
+   しておくと後で管理しやすい）。
+4. 生成されたトークンをコピーする。
+5. コピーしたトークンは **チャットに直接貼り付けない**。この Claude Code
+   環境の環境変数設定で `SUPABASE_ACCESS_TOKEN` としてセットする
+   （設定方法は https://code.claude.com/docs/en/claude-code-on-the-web の
+   環境変数の項目を参照）。会話ログに残ってしまうため、必ず環境変数経由で
+   渡してください。
+
+トークンをセットしたら `/supabase-setup` を実行してください。
+
+### 生成されるファイル
+
+- `supabase/`（`config.toml` とマイグレーション SQL。`supabase init` で生成）
+- `.env`（`.gitignore` 対象。Supabase の URL と `anon` キーのみ。コミットしない）
+- `.env.example`（コミット対象。プレースホルダのみ）
+- `lib/supabase.ts`（Supabase クライアント）
+- `lib/database.types.ts`（`/supabase-migrate` で生成される型。`db push` の
+  たびに更新される）
+
+**注意**：Expo は `EXPO_PUBLIC_` 接頭辞の付いた環境変数だけをアプリのバンドルに
+埋め込みます。そのため `.env` に置くのは公開してよい `anon` / `publishable`
+キーのみにしてください。`service_role` キーなどの秘密情報を `EXPO_PUBLIC_`
+変数にすると、アプリのバンドルから丸見えになります。
+
 ## 動作確認
 
 このテンプレートは **PC を前提にしません**（スマホ + Claude Code のみ）。
@@ -105,6 +157,8 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 | `/setup-template` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更） | 「セットアップして」「このテンプレートを初期化して」 |
 | `/tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
 | `/sdk-check` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
+| `/supabase-setup` | Supabase プロジェクトを CLI で作成・リンクし、クライアントを配線（一度きり） | 「Supabaseを使いたい」「バックエンドが欲しい」 |
+| `/supabase-migrate` | マイグレーション SQL を書いてリモート DB に push し、型を再生成（繰り返し使う） | 「テーブルを追加して」「マイグレーション実行して」 |
 
 スラッシュコマンドを直接使わなくても、上記のような自然な日本語の指示で
 Claude Code が該当スキルを判断して実行します。
@@ -113,7 +167,7 @@ Claude Code が該当スキルを判断して実行します。
 
 ```
 .github/workflows/expo-tunnel.yml  トンネル起動 + GitHub 通知
-.claude/skills/                    Claude Code スキル（setup-template / tunnel / sdk-check）
+.claude/skills/                    Claude Code スキル（setup-template / tunnel / sdk-check / supabase-setup / supabase-migrate）
 CLAUDE.md                         開発フローと SDK バージョンの注意点（Claude 向け）
 App.tsx                            アプリのエントリー（ここから書き始める）
 index.ts                           ルート登録
@@ -121,4 +175,7 @@ app.json                          Expo 設定（name / slug を変更）
 package.json                      SDK 固定済みの依存関係
 tsconfig.json                     TypeScript 設定
 assets/                           アイコン / スプラッシュ画像（差し替え可）
+supabase/                         （オプション）/supabase-setup 実行時に生成。config.toml とマイグレーション
+lib/                              （オプション）/supabase-setup 実行時に生成。supabase.ts / database.types.ts
+.env.example                      （オプション）Supabase の環境変数プレースホルダ（コミット対象）
 ```
