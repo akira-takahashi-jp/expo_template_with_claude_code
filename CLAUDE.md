@@ -87,30 +87,63 @@ Expo Go ビルドが 2026 年 5 月頃から Apple App Store の審査で止ま�
 テンプレートの基本ファイルには何も先回りして追加していない —— オプトインの
 2スキルで完結する：
 
-- **`/supabase-setup`**（一度きり）—— Supabase プロジェクトを CLI で作成し、
-  `supabase link` した上で `@supabase/supabase-js` クライアントを配線する。
+- **`/supabase-setup`**（一度きり）—— Supabase プロジェクトを作成し、
+  `@supabase/supabase-js` クライアントを配線する。
 - **`/supabase-migrate`**（繰り返し使う）—— マイグレーション SQL を書いて
-  リモート DB に `db push` し、`lib/database.types.ts` を再生成する。
+  リモート DB に適用し、`lib/database.types.ts` を再生成する。
 
-立ち上げ手順（全て CLI、詳細は `/supabase-setup` スキル参照）：
+### 重要：`supabase` CLI は使わず Management API（curl）を使う
+
+`supabase` CLI は Bun 製バイナリで、Claude Code on the web のセキュリティ
+プロキシ（全通信を TLS 再暗号化する）と**非互換**。実行するとプロキシの証明書を
+信頼できず `TransportError` になる（公式ドキュメントでも「Bun は既知の非互換例」
+と明記）。そのため両スキルは **CLI を使わず、`api.supabase.com` の Management API
+を curl で叩く**。curl はプロキシの CA（`/root/.ccr/ca-bundle.crt`）を信頼できる
+ので確実に動く。この方式はテンプレートで実際にプロジェクト作成〜マイグレーション
+適用〜型生成〜`tsc` まで通ることを検証済み。
+
+- プロジェクト作成 … `POST /v1/projects`（`create_project.sh`）
+- 公開キー取得   … `GET  /v1/projects/<ref>/api-keys`
+- SQL 適用       … `POST /v1/projects/<ref>/database/query`（`push.sh`）
+- 型生成         … `GET  /v1/projects/<ref>/types/typescript`（`push.sh`）
+
+依存インストールも `expo install` の SDK 互換解決がプロキシ下で不安定なため、
+SDK にピン留めされたネイティブモジュール版を `node_modules/expo/bundledNativeModules.json`
+から読み取り `npm install` で直接入れる（`scaffold.sh`）。
+
+### ネットワーク要件
+
+Management API と Supabase への通信が必要なので、環境のネットワークポリシーで
+以下のホストを許可する（**Trusted + カスタム許可**で十分。フルアクセスにする
+必要はない）：
+
+- `api.supabase.com`（Management API）
+- `*.supabase.co`（プロジェクト本体・DB・REST）
+- `*.pooler.supabase.com`（connection pooler 経由になる場合）
+
+未許可だと curl が `host not permitted`（プロキシの 403）で失敗する。フルアクセスは
+外向き通信が無制限になり、`SUPABASE_ACCESS_TOKEN` 等の秘密が万一漏れた際の
+持ち出し経路が広がるため、必要ホストだけの許可を推奨する。
+
+### 立ち上げ手順（概要、詳細は各スキル参照）
 
 ```
 スマホのブラウザでパーソナルアクセストークン発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
-supabase projects create <name> --org-id <id> --db-password <pw>
-supabase init でローカルに supabase/ と config.toml 生成
-supabase link --project-ref <ref>
-マイグレーション書く → supabase db push
-supabase gen types typescript で型生成 → Expo 側に取り込み
+組織ID取得（curl: GET /v1/organizations）
+プロジェクト作成（create_project.sh → 作成・稼働待ち・公開キー取得）
+クライアント配線（scaffold.sh → .env / 依存 / lib/supabase.ts）
+マイグレーション書く（supabase/migrations/<timestamp>_<name>.sql）
+適用 + 型生成（push.sh → database/query で適用、types/typescript で型生成）
 ```
 
-パーソナルアクセストークン（`SUPABASE_ACCESS_TOKEN`）の取得手順は README の「Supabase を使う場合」
-を参照。**トークンをチャットに直接貼り付けさせないこと** —— 会話ログに残って
-しまうため、この Claude Code 環境の環境変数として設定してもらう。
+パーソナルアクセストークン（`SUPABASE_ACCESS_TOKEN`）の取得手順は README の
+「Supabase を使う場合」を参照。**トークンをチャットに直接貼り付けさせないこと**
+—— 会話ログに残ってしまうため、この Claude Code 環境の環境変数として設定してもらう。
 
 生成される主なファイル（すべて `/supabase-setup` / `/supabase-migrate` 実行時
 にのみ作られる）：
 
-- `supabase/`（`config.toml` とマイグレーション SQL）
+- `supabase/migrations/`（マイグレーション SQL）
 - `.env`（`.gitignore` 対象、URL とキーのみ。コミットしない）
 - `.env.example`（コミット対象。プレースホルダのみ）
 - `lib/supabase.ts`（クライアント）／ `lib/database.types.ts`（生成された型）

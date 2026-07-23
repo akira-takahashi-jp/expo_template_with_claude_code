@@ -48,8 +48,31 @@ if ! grep -qE '^\.env$' .gitignore 2>/dev/null; then
 fi
 
 # --- 2. 依存インストール -----------------------------------------------------
-echo "▶ 依存パッケージをインストール中: @supabase/supabase-js @react-native-async-storage/async-storage"
-npx expo install @supabase/supabase-js @react-native-async-storage/async-storage
+# `expo install` は SDK 互換バージョンの解決に Expo のサーバーへアクセスするが、
+# Claude Code on the web のプロキシ下では不安定（非 JSON 応答でクラッシュ）。
+# 代わりに、SDK にピン留めされたネイティブモジュール版を node_modules/expo の
+# bundledNativeModules.json（ローカル）から読み取り、npm で直接入れる。
+if [ ! -d node_modules/expo ]; then
+  echo "▶ node_modules が無いため npm install を実行..."
+  npm install
+fi
+
+ASYNC_VER="$(python3 - <<'PY' 2>/dev/null || true
+import json, glob
+fs = glob.glob('node_modules/expo/bundledNativeModules.json')
+if fs:
+    print(json.load(open(fs[0])).get('@react-native-async-storage/async-storage', ''))
+PY
+)"
+
+echo "▶ 依存パッケージをインストール中: @supabase/supabase-js @react-native-async-storage/async-storage${ASYNC_VER:+@$ASYNC_VER}"
+if [ -n "$ASYNC_VER" ]; then
+  npm install @supabase/supabase-js "@react-native-async-storage/async-storage@$ASYNC_VER"
+else
+  # ピン留め版が読めない場合のフォールバック（最終手段として expo install）
+  npm install @supabase/supabase-js @react-native-async-storage/async-storage \
+    || npx expo install @supabase/supabase-js @react-native-async-storage/async-storage
+fi
 
 # --- 3. lib/supabase.ts ------------------------------------------------------
 mkdir -p lib

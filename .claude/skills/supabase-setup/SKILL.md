@@ -1,15 +1,22 @@
 ---
 name: supabase-setup
-description: Bootstrap a Supabase backend for this Expo project — creates the Supabase project via CLI, links it locally, and wires up an @supabase/supabase-js client with env vars. Requires the user to have already set SUPABASE_ACCESS_TOKEN. Use when the user wants to add Supabase, needs a backend/database/auth, or asks to "set up Supabase".
+description: Bootstrap a Supabase backend for this Expo project — creates the Supabase project via the Management API (curl), fetches the publishable key, and wires up an @supabase/supabase-js client. Requires the user to have already set SUPABASE_ACCESS_TOKEN. Use when the user wants to add Supabase, needs a backend/database/auth, or asks to "set up Supabase".
 ---
 
 # Supabase プロジェクトの初回セットアップ
 
 このプロジェクトに Supabase バックエンド（Postgres DB / Auth / Storage）を
-全て CLI だけで立ち上げる。PC 不要、スマホ + Claude Code のみで完結する。
-このテンプレートの基本ファイル（`package.json` の依存など）には何も
-先回りして追加していない。このスキルを実行したときだけ Supabase 関連の
-依存・ファイルが増える。
+立ち上げる。PC 不要、スマホ + Claude Code のみで完結する。テンプレートの
+基本ファイルには何も先回りして追加していない。このスキルを実行したときだけ
+Supabase 関連の依存・ファイルが増える。
+
+## 重要：CLI ではなく Management API（curl）を使う
+
+`supabase` CLI は Bun 製バイナリで、Claude Code on the web のセキュリティ
+プロキシ（全通信を TLS 再暗号化する）と**非互換**。実行すると証明書を信頼
+できず `TransportError` で失敗する（公式ドキュメントでも「Bun は既知の非互換
+例」と明記）。そのためこのスキルは **CLI を使わず、`api.supabase.com` の
+Management API を curl で叩く**。curl はプロキシの CA を信頼できるので確実に動く。
 
 ## 実行手順
 
@@ -20,100 +27,91 @@ description: Bootstrap a Supabase backend for this Expo project — creates the 
   ```sh
   [ -n "$SUPABASE_ACCESS_TOKEN" ] && echo set || echo missing
   ```
-  `missing` の場合は中断し、ユーザーに README の「Supabase パーソナルアクセストークンの取得」手順
-  （`supabase.com/dashboard/account/tokens` でトークン発行 → この Claude Code
-  環境の環境変数として `SUPABASE_ACCESS_TOKEN` を設定）を案内する。
-  **トークンの値をチャットに直接貼り付けさせないこと** —— 会話ログに残ってしまう。
-  環境変数として設定してもらい、このセッションから `$SUPABASE_ACCESS_TOKEN` で
-  参照できる状態にしてから再度呼び出してもらう。
-- `npx -y supabase --version` が通るか（初回はダウンロードが走る）。
+  `missing` の場合は中断し、ユーザーに README の
+  「Supabase パーソナルアクセストークンの取得」手順（`supabase.com/dashboard/account/tokens`
+  で発行 → この Claude Code 環境の環境変数として `SUPABASE_ACCESS_TOKEN` を設定）
+  を案内する。**トークンの値をチャットに貼り付けさせないこと**（会話ログに残る）。
+- `api.supabase.com` への到達性があるか（ネットワークポリシー）。後述の org 一覧
+  取得が `host not permitted` で失敗する場合は、環境のネットワーク設定で
+  `api.supabase.com` / `*.supabase.co` を許可する必要がある（README 参照）。
 
-### 2. プロジェクトの設定値をユーザーに確認する
+curl はこのスキル内で常にプロキシの CA を明示的に信頼させる：
+`--cacert /root/.ccr/ca-bundle.crt`（存在すれば）を付けると確実。
 
-`AskUserQuestion` などで以下を確認する：
+### 2. 組織 ID を取得する
 
+```sh
+curl -sS --cacert /root/.ccr/ca-bundle.crt \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  https://api.supabase.com/v1/organizations
+```
+`[{"id":"...","slug":"...","name":"..."}]` が返る。1件なら自動採用、複数なら
+`AskUserQuestion` でユーザーに選ばせる。この `id` を次で使う。
+
+### 3. 設定値をユーザーに確認する
+
+`AskUserQuestion` で：
 - **プロジェクト名**（デフォルト: `package.json` の `name`）。
-- **リージョン**（デフォルト `ap-northeast-1` 東京。他の選択肢は
-  `npx -y supabase projects create --help` の `--region` 一覧を参照）。
-- **DB パスワード**：基本は自動生成を推奨する（下記手順4で生成）。ユーザーが
-  指定したい場合はそれを使う。
+- **リージョン**（デフォルト `ap-northeast-1` 東京）。
+- **DB パスワード**：基本は自動生成を推奨。指定があればそれを使う。
 
-組織（org）は `npx -y supabase orgs list` で一覧を取得する。1件しかなければ
-自動選択し、複数あれば `AskUserQuestion` でユーザーに選ばせる。
-
-### 3. DB パスワードを用意する
-
-ユーザーが指定しなければ自動生成する（例）：
+DB パスワードの自動生成例：
 ```sh
 node -e "console.log(require('crypto').randomBytes(18).toString('base64').replace(/[^A-Za-z0-9]/g,'').slice(0,24))"
 ```
-生成した値は最後の報告で必ずユーザーに提示する（`supabase link` 以降でしか
-使わないが、後で直接 psql 接続したい場合に必要になるため）。**リポジトリには
-書き込まない。**
+生成値は最後の報告で必ずユーザーに提示する（リポジトリには書き込まない）。
 
-### 4. Supabase プロジェクトを作成する
+### 4. プロジェクトを作成し接続情報を得る
 
-```sh
-npx -y supabase projects create "<name>" --org-id <org-id> --db-password "<password>" --region <region>
-```
-
-出力からプロジェクト ref（`abcdefghijklmnopqrst` のような英数字ID）を読み取る。
-プロジェクトのプロビジョニングは数十秒〜数分かかることがある。すぐ後の
-`link` が失敗する場合は少し待って再実行する。
-
-### 5. ローカルに初期化する
-
-`supabase/config.toml` がまだ無い場合のみ実行する（既にあれば飛ばす）：
-```sh
-npx -y supabase init
-```
-
-### 6. プロジェクトをリンクする
+このスキルと同じフォルダの `create_project.sh` を実行する。Management API で
+プロジェクトを作成 → 稼働待ち → 公開キー取得までを行い、`.env` 形式3行を
+標準出力に返す：
 
 ```sh
-npx -y supabase link --project-ref <ref> --password "<password>" --yes
+.claude/skills/supabase-setup/create_project.sh \
+  --name "<name>" --org-id "<org-id>" --db-password "<pw>" --region ap-northeast-1
 ```
 
-### 7. API キーを取得する
+出力例（最後の3行）：
+```
+EXPO_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
+SUPABASE_PROJECT_REF=<ref>
+```
+この URL と ANON_KEY を次のステップで使う。
 
+### 5. クライアントを配線する
+
+`scaffold.sh` を、取得した値で実行する：
 ```sh
-npx -y supabase projects api-keys --project-ref <ref>
+.claude/skills/supabase-setup/scaffold.sh --url "https://<ref>.supabase.co" --anon-key "<publishable-key>"
 ```
-出力から公開用キー（`anon` または `publishable` という名前のもの。
-`service_role` / `secret` は絶対に使わない — クライアントに埋め込まれるため）
-を読み取る。URL は `https://<ref>.supabase.co`。
+やること：`.env`（gitignore 対象）と `.env.example`（コミット対象）を作成 →
+`.gitignore` に `.env` を追加 → `@supabase/supabase-js` と
+`@react-native-async-storage/async-storage` を `expo install` →
+`lib/supabase.ts` を作成。
 
-### 8. クライアントを配線する
-
-このスキルと同じフォルダの `scaffold.sh` を、取得した値で実行する：
-```sh
-.claude/skills/supabase-setup/scaffold.sh --url "https://<ref>.supabase.co" --anon-key "<anon-or-publishable-key>"
-```
-
-スクリプトがやること：`.env`（gitignore 対象）と `.env.example`
-（コミット対象）を作成 → `.gitignore` に `.env` を追加 →
-`@supabase/supabase-js` と `@react-native-async-storage/async-storage` を
-`expo install` → `lib/supabase.ts` を作成。
-
-### 9. 型チェックする
+### 6. 型チェックする
 
 ```sh
 npx tsc --noEmit
 ```
 
-### 10. 結果を報告する
+### 7. 結果を報告する
 
 - プロジェクト ref とダッシュボード URL（`https://supabase.com/dashboard/project/<ref>`）。
-- 生成した DB パスワード（再掲、控えておくよう伝える）。
+- 生成した DB パスワード（再掲、控えるよう伝える）。
 - `.env` はローカルにのみ存在しコミットされないこと。
 - 次はテーブル定義がしたければ `/supabase-migrate` を使うこと。
 
 ## 注意
 
 - `EXPO_PUBLIC_` 接頭辞が付いた環境変数だけが Expo のバンドルに埋め込まれる。
-  そのためこれらの値はクライアントから見えて当然のもの（`anon` キー）に限る。
-  `service_role` キーやその他の秘密情報を `EXPO_PUBLIC_` 変数にしないこと。
-- ネットワークポリシーで外向き通信が制限されている環境では、
-  `api.supabase.com` / `*.supabase.co` への到達性が必要になる。
-- このスキルは一度きりの初回セットアップ用。既にリンク済みなら再実行不要
-  （`supabase/config.toml` と `.env` の有無で判断する）。
+  そのため `.env` に置く値は公開前提のもの（`anon` / `publishable` キー）に限る。
+  `service_role` / `secret` キーを `EXPO_PUBLIC_` 変数にしないこと。
+- `create_project.sh` は Management API のキー一覧から `type=publishable` または
+  `name=anon` のキーだけを選ぶ（秘密キーは拾わない）。
+- プロビジョニングに時間がかかり `link`/キー取得が早すぎると失敗することがある。
+  スクリプトは `ACTIVE_HEALTHY` を最大 300s 待つ。タイムアウトしたら少し置いて
+  再実行する（作成済みプロジェクトは Management API またはダッシュボードで確認）。
+- このスキルは一度きり。既に `.env` と `lib/supabase.ts` があれば再実行不要。

@@ -92,21 +92,43 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 テンプレートの基本ファイルには何も先回りして追加していません。次の2つの
 スキルを実行したときだけ、関連ファイル・依存が増えます。
 
-- `/supabase-setup` — Supabase プロジェクトを CLI で作成・リンクし、
-  `@supabase/supabase-js` クライアントを配線する（一度きり）。
-- `/supabase-migrate` — マイグレーション SQL を書いてリモート DB に push し、
+- `/supabase-setup` — Supabase プロジェクトを作成し、`@supabase/supabase-js`
+  クライアントを配線する（一度きり）。
+- `/supabase-migrate` — マイグレーション SQL を書いてリモート DB に適用し、
   TypeScript の型を再生成する（繰り返し使う）。
 
-立ち上げ手順（全て CLI）：
+立ち上げ手順（トークンのセット以外は Claude Code が自動実行）：
 
 ```
 スマホのブラウザでパーソナルアクセストークン発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
-supabase projects create <name> --org-id <id> --db-password <pw>
-supabase init でローカルに supabase/ と config.toml 生成
-supabase link --project-ref <ref>
-マイグレーション書く → supabase db push
-supabase gen types typescript で型生成 → Expo 側に取り込み
+組織IDを取得（Management API）
+プロジェクトを作成し、公開キーを取得（Management API）
+.env / 依存 / lib/supabase.ts を配線
+マイグレーションSQLを書く → リモートDBに適用 → 型を再生成
 ```
+
+> **補足（技術的な注意）**：`supabase` CLI は Bun 製バイナリで、Claude Code on
+> the web のセキュリティプロキシと非互換（`TransportError` になる。公式ドキュメント
+> でも「Bun は既知の非互換例」と明記）。そのため両スキルは CLI を使わず、
+> Supabase の **Management API を curl で** 叩いてプロジェクト作成・SQL 適用・
+> 型生成を行います（curl はプロキシの CA を信頼できるため確実に動作。実際に
+> エンドツーエンドで検証済み）。ユーザーが CLI を意識する必要はありません。
+
+### ネットワーク設定（重要）
+
+Supabase との通信には、環境のネットワークポリシーで以下のホストの許可が必要です。
+**「Trusted」+ カスタム許可ドメイン**で十分で、フルアクセスにする必要はありません
+（フルアクセスは外向き通信が無制限になり、トークン漏洩時の持ち出し経路が広がるため
+非推奨）。
+
+- `api.supabase.com`（Management API）
+- `*.supabase.co`（プロジェクト本体・DB・REST）
+- `*.pooler.supabase.com`（connection pooler 経由になる場合）
+
+未許可のままだと `host not permitted`（プロキシの 403）で失敗します。ネットワーク
+設定はセッション起動時に反映されるため、変更後は新しいセッションで実行してください。
+設定場所は環境変数と同じ「環境の設定画面」です
+（https://code.claude.com/docs/en/claude-code-on-the-web の Network access の項目）。
 
 ### Supabase パーソナルアクセストークンの取得手順
 
@@ -126,12 +148,12 @@ supabase gen types typescript で型生成 → Expo 側に取り込み
 
 ### 生成されるファイル
 
-- `supabase/`（`config.toml` とマイグレーション SQL。`supabase init` で生成）
+- `supabase/migrations/`（マイグレーション SQL。`<timestamp>_<name>.sql`）
 - `.env`（`.gitignore` 対象。Supabase の URL と `anon` キーのみ。コミットしない）
 - `.env.example`（コミット対象。プレースホルダのみ）
 - `lib/supabase.ts`（Supabase クライアント）
-- `lib/database.types.ts`（`/supabase-migrate` で生成される型。`db push` の
-  たびに更新される）
+- `lib/database.types.ts`（`/supabase-migrate` で生成される型。マイグレーション
+  適用のたびに更新される）
 
 **注意**：Expo は `EXPO_PUBLIC_` 接頭辞の付いた環境変数だけをアプリのバンドルに
 埋め込みます。そのため `.env` に置くのは公開してよい `anon` / `publishable`
