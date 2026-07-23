@@ -29,7 +29,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
 [ -n "${SUPABASE_ACCESS_TOKEN:-}" ] || { echo "❌ SUPABASE_ACCESS_TOKEN が未設定です。" >&2; exit 1; }
-[ -f .env ] || { echo "❌ .env が見つかりません。先に /supabase-setup を実行してください。" >&2; exit 1; }
+[ -f .env ] || { echo "❌ .env が見つかりません。先に /setup-supabase を実行してください。" >&2; exit 1; }
 
 # --- ref を .env から導出 ---------------------------------------------------
 URL="$(grep -E '^EXPO_PUBLIC_SUPABASE_URL=' .env | head -1 | cut -d= -f2- | tr -d "\"'")"

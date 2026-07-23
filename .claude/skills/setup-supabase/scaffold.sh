@@ -90,7 +90,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// `/supabase-migrate` でマイグレーションを push すると lib/database.types.ts が
+// `/migrate-supabase` でマイグレーションを適用すると lib/database.types.ts が
 // 生成される。生成後は `import type { Database } from './database.types'` を追加し、
 // `createClient<Database>(...)` に差し替えると型付きクエリになる。
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -108,4 +108,4 @@ else
 fi
 
 echo ""
-echo "✅ Supabase クライアントの配線が完了しました。次は /supabase-migrate でテーブルを作成できます。"
+echo "✅ Supabase クライアントの配線が完了しました。次は /migrate-supabase でテーブルを作成できます。"

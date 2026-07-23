@@ -26,7 +26,7 @@ Codespaces の課金も発生せず、より単純に安定動作させられた
 
 ## このテンプレートから新しいリポジトリを作るときの初回セットアップ
 
-**自動化あり:** `/setup-template` スキル（`.claude/skills/setup-template/`）を
+**自動化あり:** `/init-project` スキル（`.claude/skills/init-project/`）を
 使うと、以下を自動で実行できる —— `gh` でトラッキング用 Issue を作成し、
 ログイン中のアカウントから `NOTIFY_USER` を検出し、`expo-tunnel.yml` の
 `STATUS_ISSUE_NUMBER` / `NOTIFY_USER` / `push.branches` を書き換え、必要なら
@@ -58,7 +58,7 @@ Expo Go のビルドごとに Apple／Google のアプリストア審査が必�
 *プロジェクト側*の SDK バージョンを、現在公開されている版に合わせることで直る。
 
 **コードを書き始める前に**、適切な SDK バージョンを見極める（この手順は
-`/sdk-check` スキルで自動化されている）：
+`/check-sdk` スキルで自動化されている）：
 
 1. Expo 公式の changelog で現在のアプリストア状況を確認する ——「Expo Go and
    the App Store」に当月・当年を添えて検索するか、
@@ -87,9 +87,9 @@ Expo Go ビルドが 2026 年 5 月頃から Apple App Store の審査で止ま�
 テンプレートの基本ファイルには何も先回りして追加していない —— オプトインの
 2スキルで完結する：
 
-- **`/supabase-setup`**（一度きり）—— Supabase プロジェクトを作成し、
+- **`/setup-supabase`**（一度きり）—— Supabase プロジェクトを作成し、
   `@supabase/supabase-js` クライアントを配線する。
-- **`/supabase-migrate`**（繰り返し使う）—— マイグレーション SQL を書いて
+- **`/migrate-supabase`**（繰り返し使う）—— マイグレーション SQL を書いて
   リモート DB に適用し、`lib/database.types.ts` を再生成する。
 
 ### 重要：`supabase` CLI は使わず Management API（curl）を使う
@@ -140,7 +140,7 @@ Management API と Supabase への通信が必要なので、環境のネット�
 「Supabase を使う場合」を参照。**トークンをチャットに直接貼り付けさせないこと**
 —— 会話ログに残ってしまうため、この Claude Code 環境の環境変数として設定してもらう。
 
-生成される主なファイル（すべて `/supabase-setup` / `/supabase-migrate` 実行時
+生成される主なファイル（すべて `/setup-supabase` / `/migrate-supabase` 実行時
 にのみ作られる）：
 
 - `supabase/migrations/`（マイグレーション SQL）
@@ -157,7 +157,7 @@ Management API と Supabase への通信が必要なので、環境のネット�
 
 このテンプレートは **PC を前提にしない**（スマホ + Claude Code のみ）。
 `npx expo start --web` のようなローカルのブラウザプレビューは、その画面を
-スマホから見る手段が無いため使わない。UI とロジックの確認は、`/tunnel` で
+スマホから見る手段が無いため使わない。UI とロジックの確認は、`/start-tunnel` で
 トンネルを起動し、スマホの Expo Go 実機で行う。
 
 型エラーなどコードレベルの検証は `npx tsc --noEmit` で行える（Claude Code の
@@ -165,17 +165,17 @@ Management API と Supabase への通信が必要なので、環境のネット�
 
 ## 利用できるスキル
 
-- **`/setup-template`** — このテンプレートから新規プロジェクトを初期化する
+- **`/init-project`** — このテンプレートから新規プロジェクトを初期化する
   （トラッキング Issue 作成・`NOTIFY_USER` 自動設定・workflow 書き換え・
   アプリ名変更）。初回セットアップを求められたらまずこれ。最後に任意で
-  Supabase セットアップ（`/supabase-setup`）への誘導も行う。
-- **`/tunnel`** — Expo トンネルを起動し、`exp://` URL / QR を取得する。
+  Supabase セットアップ（`/setup-supabase`）への誘導も行う。
+- **`/start-tunnel`** — Expo トンネルを起動し、`exp://` URL / QR を取得する。
   「アプリを実機で動かしたい」「トンネルを立てて」等で使う。
-- **`/sdk-check`** — 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して
+- **`/check-sdk`** — 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して
   固定する。新規プロジェクト開始前や「incompatible」エラー時に使う。
-- **`/supabase-setup`** — Supabase プロジェクトを Management API（curl）で作成し、
+- **`/setup-supabase`** — Supabase プロジェクトを Management API（curl）で作成し、
   クライアントを配線する（一度きり）。「Supabase を使いたい」「バックエンドが
   欲しい」等で使う。
-- **`/supabase-migrate`** — マイグレーション SQL を書いてリモート DB に適用し、
+- **`/migrate-supabase`** — マイグレーション SQL を書いてリモート DB に適用し、
   型を再生成する（繰り返し使う）。「テーブルを追加して」「マイグレーション
   実行して」等で使う。

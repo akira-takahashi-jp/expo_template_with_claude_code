@@ -1,5 +1,5 @@
 ---
-name: tunnel
+name: start-tunnel
 description: Start the Expo tunnel on GitHub Actions and report the exp:// URL and QR code so the app can be opened in Expo Go on a phone. Triggers the Expo Tunnel workflow, waits for it to come up, and returns the connection URL. Use when the user wants to run/open/launch the app on their phone, start the tunnel, or get a fresh exp:// link.
 ---
 
@@ -16,7 +16,7 @@ GitHub Actions 上で Expo トンネルを起動し、スマホの Expo Go で�
   をユーザーに促す。
 - `.github/workflows/expo-tunnel.yml` の `STATUS_ISSUE_NUMBER` /
   `NOTIFY_USER` がプレースホルダ（`REPLACE_WITH_...`）のままでないか。
-  まだなら先に `/setup-template` を実行するよう案内する。
+  まだなら先に `/init-project` を実行するよう案内する。
 
 ### 2. 配信するコードが push 済みか意識する
 
@@ -29,7 +29,7 @@ GitHub Actions 上で Expo トンネルを起動し、スマホの Expo Go で�
 このスキルと同じフォルダの `launch.sh` を実行する：
 
 ```sh
-.claude/skills/tunnel/launch.sh
+.claude/skills/start-tunnel/launch.sh
 ```
 
 - 別ブランチで配信したいときは `--ref <branch>`。

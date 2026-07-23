@@ -1,5 +1,5 @@
 ---
-name: setup-template
+name: init-project
 description: Initialize this Expo phone-only template for a new project — creates the GitHub tracking issue, auto-detects and sets NOTIFY_USER, patches STATUS_ISSUE_NUMBER and the dev branch in the tunnel workflow, optionally renames the app, and optionally offers to set up a Supabase backend. Use right after creating a new repo from this template, or when the user asks to run the initial/one-time setup.
 ---
 
@@ -39,7 +39,7 @@ description: Initialize this Expo phone-only template for a new project — crea
 このスキルと同じフォルダの `configure.sh` を、確認した値で実行する：
 
 ```sh
-.claude/skills/setup-template/configure.sh \
+.claude/skills/init-project/configure.sh \
   --branch <dev-branch> \
   --slug <app-slug> \
   --name "<表示名>"
@@ -69,18 +69,18 @@ description: Initialize this Expo phone-only template for a new project — crea
 
 - `AskUserQuestion` などで「Supabase（DB/Auth/Storage）も今セットアップするか？」
   を尋ねる。
-- **必要な場合** → そのまま `/supabase-setup` スキルに進む。ただし前提として
+- **必要な場合** → そのまま `/setup-supabase` スキルに進む。ただし前提として
   `SUPABASE_ACCESS_TOKEN`（パーソナルアクセストークン）を環境変数にセット
   しておく必要があるので、未設定なら README の
   「Supabase パーソナルアクセストークンの取得手順」を案内し、セット後に
-  `/supabase-setup` を実行する流れを伝える。ネットワークポリシーで
+  `/setup-supabase` を実行する流れを伝える。ネットワークポリシーで
   `api.supabase.com` / `*.supabase.co` の許可が要る点も併せて伝える
   （詳細は README / `CLAUDE.md` の Supabase セクション）。
-- **不要／後回しの場合** → 「あとで必要になったら `/supabase-setup` を実行すれば
+- **不要／後回しの場合** → 「あとで必要になったら `/setup-supabase` を実行すれば
   いつでも追加できる」とだけ伝えて終了する。
 
 このステップは案内・誘導のみで、`configure.sh` の対象外（Supabase 側の実処理は
-`/supabase-setup` が担当する）。
+`/setup-supabase` が担当する）。
 
 ## 注意
 

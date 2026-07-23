@@ -1,12 +1,12 @@
 ---
-name: supabase-migrate
-description: Write a Supabase database migration (SQL), apply it to the remote project via the Management API, and regenerate TypeScript types for the Expo app. Use when the user wants to add/change a table, column, or RLS policy in Supabase, or asks to run a migration or regenerate Supabase types. Requires /supabase-setup to have been run first.
+name: migrate-supabase
+description: Write a Supabase database migration (SQL), apply it to the remote project via the Management API, and regenerate TypeScript types for the Expo app. Use when the user wants to add/change a table, column, or RLS policy in Supabase, or asks to run a migration or regenerate Supabase types. Requires /setup-supabase to have been run first.
 ---
 
 # Supabase マイグレーションの作成・適用・型生成
 
 Supabase のスキーマ変更（テーブル追加・カラム変更・RLS ポリシーなど）を書いて
-リモート DB に反映し、Expo 側の TypeScript 型を最新化する。`/supabase-setup`
+リモート DB に反映し、Expo 側の TypeScript 型を最新化する。`/setup-supabase`
 実行後、繰り返し使う。
 
 ## 重要：CLI ではなく Management API（curl）を使う
@@ -24,7 +24,7 @@ Supabase のスキーマ変更（テーブル追加・カラム変更・RLS ポ�
 
 ### 1. 前提を確認する
 
-- `.env` が存在するか（無ければ `/supabase-setup` を先に）。
+- `.env` が存在するか（無ければ `/setup-supabase` を先に）。
 - `SUPABASE_ACCESS_TOKEN` が設定されているか。
 
 ### 2. マイグレーションファイルを作成する
@@ -50,7 +50,7 @@ touch "$f"; echo "$f"
 
 `push.sh` を実行する（先に対象確認だけなら `--dry-run`）：
 ```sh
-.claude/skills/supabase-migrate/push.sh
+.claude/skills/migrate-supabase/push.sh
 ```
 やること：`supabase_migrations.schema_migrations` を用意 → 未適用の `.sql` を
 `database/query` で順に適用し、バージョンを記録 →

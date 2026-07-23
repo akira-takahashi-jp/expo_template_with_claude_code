@@ -1,5 +1,5 @@
 ---
-name: supabase-setup
+name: setup-supabase
 description: Bootstrap a Supabase backend for this Expo project — creates the Supabase project via the Management API (curl), fetches the publishable key, and wires up an @supabase/supabase-js client. Requires the user to have already set SUPABASE_ACCESS_TOKEN. Use when the user wants to add Supabase, needs a backend/database/auth, or asks to "set up Supabase".
 ---
 
@@ -68,7 +68,7 @@ node -e "console.log(require('crypto').randomBytes(18).toString('base64').replac
 標準出力に返す：
 
 ```sh
-.claude/skills/supabase-setup/create_project.sh \
+.claude/skills/setup-supabase/create_project.sh \
   --name "<name>" --org-id "<org-id>" --db-password "<pw>" --region ap-northeast-1
 ```
 
@@ -84,7 +84,7 @@ SUPABASE_PROJECT_REF=<ref>
 
 `scaffold.sh` を、取得した値で実行する：
 ```sh
-.claude/skills/supabase-setup/scaffold.sh --url "https://<ref>.supabase.co" --anon-key "<publishable-key>"
+.claude/skills/setup-supabase/scaffold.sh --url "https://<ref>.supabase.co" --anon-key "<publishable-key>"
 ```
 やること：`.env`（gitignore 対象）と `.env.example`（コミット対象）を作成 →
 `.gitignore` に `.env` を追加 → `@supabase/supabase-js` と
@@ -102,7 +102,7 @@ npx tsc --noEmit
 - プロジェクト ref とダッシュボード URL（`https://supabase.com/dashboard/project/<ref>`）。
 - 生成した DB パスワード（再掲、控えるよう伝える）。
 - `.env` はローカルにのみ存在しコミットされないこと。
-- 次はテーブル定義がしたければ `/supabase-migrate` を使うこと。
+- 次はテーブル定義がしたければ `/migrate-supabase` を使うこと。
 
 ## 注意
 

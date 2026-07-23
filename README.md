@@ -10,7 +10,7 @@ Actions が立ち上げる Expo トンネル経由で行います。ローカル
 ## 開発フロー
 
 1. Claude Code がコードを編集し、コミットを push する。
-2. `develop` への push（または Claude Code の `/tunnel` スキル、Actions タブ /
+2. `develop` への push（または Claude Code の `/start-tunnel` スキル、Actions タブ /
    GitHub モバイルアプリからの **Expo Tunnel** ワークフロー手動実行）で
    `.github/workflows/expo-tunnel.yml` が起動する。
 3. ワークフローが GitHub ホストランナー上で `npx expo start --tunnel` を実行し、
@@ -27,7 +27,7 @@ Codespaces / devcontainer は使いません（パーソナルアクセストー
 
 ## 新しいプロジェクトでの初回セットアップ
 
-> **かんたん設定**: Claude Code で `/setup-template` を実行すると、以下の
+> **かんたん設定**: Claude Code で `/init-project` を実行すると、以下の
 > 2〜5（トラッキング Issue の作成、`NOTIFY_USER` の自動設定、workflow の
 > 書き換え、アプリ名の変更）を自動で行います。手動でやる場合は以下の手順。
 
@@ -73,7 +73,7 @@ Codespaces / devcontainer は使いません（パーソナルアクセストー
    （個人アカウント配下のリポジトリではこの項目は無い）。
 
 設定変更後、ワークフローを再実行（Actions タブから Re-run、または再度
-push / `/tunnel`）すれば通るはずです。
+push / `/start-tunnel`）すれば通るはずです。
 
 ## Expo SDK のバージョン固定について（重要）
 
@@ -92,9 +92,9 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 テンプレートの基本ファイルには何も先回りして追加していません。次の2つの
 スキルを実行したときだけ、関連ファイル・依存が増えます。
 
-- `/supabase-setup` — Supabase プロジェクトを作成し、`@supabase/supabase-js`
+- `/setup-supabase` — Supabase プロジェクトを作成し、`@supabase/supabase-js`
   クライアントを配線する（一度きり）。
-- `/supabase-migrate` — マイグレーション SQL を書いてリモート DB に適用し、
+- `/migrate-supabase` — マイグレーション SQL を書いてリモート DB に適用し、
   TypeScript の型を再生成する（繰り返し使う）。
 
 立ち上げ手順（トークンのセット以外は Claude Code が自動実行）：
@@ -144,7 +144,7 @@ Supabase との通信には、環境のネットワークポリシーで以下�
    環境変数の項目を参照）。会話ログに残ってしまうため、必ず環境変数経由で
    渡してください。
 
-トークンをセットしたら `/supabase-setup` を実行してください。
+トークンをセットしたら `/setup-supabase` を実行してください。
 
 ### 生成されるファイル
 
@@ -152,7 +152,7 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 - `.env`（`.gitignore` 対象。Supabase の URL と `anon` キーのみ。コミットしない）
 - `.env.example`（コミット対象。プレースホルダのみ）
 - `lib/supabase.ts`（Supabase クライアント）
-- `lib/database.types.ts`（`/supabase-migrate` で生成される型。マイグレーション
+- `lib/database.types.ts`（`/migrate-supabase` で生成される型。マイグレーション
   適用のたびに更新される）
 
 **注意**：Expo は `EXPO_PUBLIC_` 接頭辞の付いた環境変数だけをアプリのバンドルに
@@ -164,7 +164,7 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 
 このテンプレートは **PC を前提にしません**（スマホ + Claude Code のみ）。
 `npx expo start --web` のようなローカルのブラウザプレビューは、その画面を
-スマホから見る手段が無いため使いません。UI・動作の確認は `/tunnel` で
+スマホから見る手段が無いため使いません。UI・動作の確認は `/start-tunnel` で
 トンネルを起動し、スマホの Expo Go 実機で行います。
 
 型チェック（`npx tsc --noEmit`）などコードレベルの検証は Claude Code の実行
@@ -176,11 +176,11 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 
 | スキル | 用途 | 自然文での呼び出し例 |
 | --- | --- | --- |
-| `/setup-template` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更、任意で Supabase 誘導） | 「セットアップして」「このテンプレートを初期化して」 |
-| `/tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
-| `/sdk-check` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
-| `/supabase-setup` | Supabase プロジェクトを Management API で作成し、クライアントを配線（一度きり） | 「Supabaseを使いたい」「バックエンドが欲しい」 |
-| `/supabase-migrate` | マイグレーション SQL を書いてリモート DB に適用し、型を再生成（繰り返し使う） | 「テーブルを追加して」「マイグレーション実行して」 |
+| `/init-project` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更、任意で Supabase 誘導） | 「セットアップして」「このテンプレートを初期化して」 |
+| `/start-tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/check-sdk` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
+| `/setup-supabase` | Supabase プロジェクトを Management API で作成し、クライアントを配線（一度きり） | 「Supabaseを使いたい」「バックエンドが欲しい」 |
+| `/migrate-supabase` | マイグレーション SQL を書いてリモート DB に適用し、型を再生成（繰り返し使う） | 「テーブルを追加して」「マイグレーション実行して」 |
 
 スラッシュコマンドを直接使わなくても、上記のような自然な日本語の指示で
 Claude Code が該当スキルを判断して実行します。
@@ -189,7 +189,7 @@ Claude Code が該当スキルを判断して実行します。
 
 ```
 .github/workflows/expo-tunnel.yml  トンネル起動 + GitHub 通知
-.claude/skills/                    Claude Code スキル（setup-template / tunnel / sdk-check / supabase-setup / supabase-migrate）
+.claude/skills/                    Claude Code スキル（init-project / start-tunnel / check-sdk / setup-supabase / migrate-supabase）
 CLAUDE.md                         開発フローと SDK バージョンの注意点（Claude 向け）
 App.tsx                            アプリのエントリー（ここから書き始める）
 index.ts                           ルート登録
@@ -197,7 +197,7 @@ app.json                          Expo 設定（name / slug を変更）
 package.json                      SDK 固定済みの依存関係
 tsconfig.json                     TypeScript 設定
 assets/                           アイコン / スプラッシュ画像（差し替え可）
-supabase/                         （オプション）/supabase-setup 実行時に生成。config.toml とマイグレーション
-lib/                              （オプション）/supabase-setup 実行時に生成。supabase.ts / database.types.ts
+supabase/migrations/              （オプション）/migrate-supabase で作成するマイグレーション SQL
+lib/                              （オプション）/setup-supabase 実行時に生成。supabase.ts / database.types.ts
 .env.example                      （オプション）Supabase の環境変数プレースホルダ（コミット対象）
 ```
