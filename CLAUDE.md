@@ -167,14 +167,15 @@ Management API と Supabase への通信が必要なので、環境のネット�
 
 - **`/setup-template`** — このテンプレートから新規プロジェクトを初期化する
   （トラッキング Issue 作成・`NOTIFY_USER` 自動設定・workflow 書き換え・
-  アプリ名変更）。初回セットアップを求められたらまずこれ。
+  アプリ名変更）。初回セットアップを求められたらまずこれ。最後に任意で
+  Supabase セットアップ（`/supabase-setup`）への誘導も行う。
 - **`/tunnel`** — Expo トンネルを起動し、`exp://` URL / QR を取得する。
   「アプリを実機で動かしたい」「トンネルを立てて」等で使う。
 - **`/sdk-check`** — 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して
   固定する。新規プロジェクト開始前や「incompatible」エラー時に使う。
-- **`/supabase-setup`** — Supabase プロジェクトを CLI で作成・リンクし、
+- **`/supabase-setup`** — Supabase プロジェクトを Management API（curl）で作成し、
   クライアントを配線する（一度きり）。「Supabase を使いたい」「バックエンドが
   欲しい」等で使う。
-- **`/supabase-migrate`** — マイグレーション SQL を書いてリモート DB に push し、
+- **`/supabase-migrate`** — マイグレーション SQL を書いてリモート DB に適用し、
   型を再生成する（繰り返し使う）。「テーブルを追加して」「マイグレーション
   実行して」等で使う。
