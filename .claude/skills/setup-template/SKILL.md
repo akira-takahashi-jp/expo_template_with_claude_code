@@ -64,7 +64,7 @@ description: Initialize this Expo phone-only template for a new project — crea
 
 ## 注意
 
-- secret も PAT も不要。ワークフロー自身の `permissions: issues: write` だけで
+- secret もパーソナルアクセストークンも不要。ワークフロー自身の `permissions: issues: write` だけで
   Issue にコメントできる。
 - スクリプトが `gh` 未ログインやリポジトリ未設定で失敗した場合は、その原因を
   ユーザーに伝え、解消してから再実行する。

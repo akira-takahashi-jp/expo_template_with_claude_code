@@ -21,7 +21,7 @@ Expo / React Native アプリを開発するためのテンプレートです。
    グループのため）。同時に 2 本以上のトンネルが立つことはない。
 
 Codespaces／devcontainer のステップは無い。一度試したが取りやめた：Actions
-ジョブ内で直接トンネルを動かせば個人アクセストークン（PAT）が不要で、
+ジョブ内で直接トンネルを動かせばパーソナルアクセストークンが不要で、
 Codespaces の課金も発生せず、より単純に安定動作させられたため。
 
 ## このテンプレートから新しいリポジトリを作るときの初回セットアップ
@@ -39,7 +39,7 @@ Codespaces の課金も発生せず、より単純に安定動作させられた
   - `env.STATUS_ISSUE_NUMBER` → その Issue の番号
   - `env.NOTIFY_USER` → 自分の GitHub ユーザー名
   - `push.branches` のリスト → `develop` 以外を使うなら自分の開発ブランチ名
-- secret も PAT も不要。`gh` は GitHub ホストランナーにプリインストール済みで、
+- secret もパーソナルアクセストークンも不要。`gh` は GitHub ホストランナーにプリインストール済みで、
   ワークフロー自身の `permissions: issues: write` だけでトラッキング用 Issue に
   コメントできる。
 
@@ -95,7 +95,7 @@ Expo Go ビルドが 2026 年 5 月頃から Apple App Store の審査で止ま�
 立ち上げ手順（全て CLI、詳細は `/supabase-setup` スキル参照）：
 
 ```
-スマホのブラウザで PAT 発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
+スマホのブラウザでパーソナルアクセストークン発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
 supabase projects create <name> --org-id <id> --db-password <pw>
 supabase init でローカルに supabase/ と config.toml 生成
 supabase link --project-ref <ref>
@@ -103,7 +103,7 @@ supabase link --project-ref <ref>
 supabase gen types typescript で型生成 → Expo 側に取り込み
 ```
 
-PAT（`SUPABASE_ACCESS_TOKEN`）の取得手順は README の「Supabase を使う場合」
+パーソナルアクセストークン（`SUPABASE_ACCESS_TOKEN`）の取得手順は README の「Supabase を使う場合」
 を参照。**トークンをチャットに直接貼り付けさせないこと** —— 会話ログに残って
 しまうため、この Claude Code 環境の環境変数として設定してもらう。
 

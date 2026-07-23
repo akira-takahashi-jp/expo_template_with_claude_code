@@ -22,7 +22,7 @@ Actions が立ち上げる Expo トンネル経由で行います。ローカル
    再 push すると実行中のトンネルは自動でキャンセルされ、同時に 2 本以上
    立ち上がることはない。
 
-Codespaces / devcontainer は使いません（PAT 不要・課金なしで Actions ジョブ内で
+Codespaces / devcontainer は使いません（パーソナルアクセストークン不要・課金なしで Actions ジョブ内で
 直接トンネルを動かすほうが単純で確実なため）。
 
 ## 新しいプロジェクトでの初回セットアップ
@@ -39,7 +39,7 @@ Codespaces / devcontainer は使いません（PAT 不要・課金なしで Acti
    - `push.branches` → 使う開発ブランチ名（無ければ `workflow_dispatch`
      のみでも動く）
 4. `app.json` と `package.json` の `name` / `slug` を新プロジェクト用に変更する。
-5. secret や PAT の追加設定は不要。`gh` はランナーにプリインストール済みで、
+5. secret やパーソナルアクセストークンの追加設定は不要。`gh` はランナーにプリインストール済みで、
    ワークフロー自身の `permissions: issues: write` だけで Issue にコメントできる。
 
 ## トラブルシューティング
@@ -100,7 +100,7 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 立ち上げ手順（全て CLI）：
 
 ```
-スマホのブラウザで PAT 発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
+スマホのブラウザでパーソナルアクセストークン発行 → セッションに SUPABASE_ACCESS_TOKEN をセット（これだけ手動）
 supabase projects create <name> --org-id <id> --db-password <pw>
 supabase init でローカルに supabase/ と config.toml 生成
 supabase link --project-ref <ref>
@@ -108,7 +108,7 @@ supabase link --project-ref <ref>
 supabase gen types typescript で型生成 → Expo 側に取り込み
 ```
 
-### Supabase PAT（アクセストークン）の取得手順
+### Supabase パーソナルアクセストークンの取得手順
 
 1. スマホのブラウザで https://supabase.com/dashboard/account/tokens を開く
    （Supabase アカウントにログイン）。

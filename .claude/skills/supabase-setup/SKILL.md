@@ -20,7 +20,7 @@ description: Bootstrap a Supabase backend for this Expo project — creates the 
   ```sh
   [ -n "$SUPABASE_ACCESS_TOKEN" ] && echo set || echo missing
   ```
-  `missing` の場合は中断し、ユーザーに README の「Supabase PAT の取得」手順
+  `missing` の場合は中断し、ユーザーに README の「Supabase パーソナルアクセストークンの取得」手順
   （`supabase.com/dashboard/account/tokens` でトークン発行 → この Claude Code
   環境の環境変数として `SUPABASE_ACCESS_TOKEN` を設定）を案内する。
   **トークンの値をチャットに直接貼り付けさせないこと** —— 会話ログに残ってしまう。
