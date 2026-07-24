@@ -6,9 +6,13 @@ description: Bootstrap a Supabase backend for this Expo project — creates the 
 # Supabase プロジェクトの初回セットアップ
 
 このプロジェクトに Supabase バックエンド（Postgres DB / Auth / Storage）を
-立ち上げる。PC 不要、スマホ + Claude Code のみで完結する。テンプレートの
-基本ファイルには何も先回りして追加していない。このスキルを実行したときだけ
-Supabase 関連の依存・ファイルが増える。
+立ち上げる。PC 不要、スマホ + Claude Code のみで完結する（ホスト型プロジェクトを
+Management API 経由で作成する）。テンプレートの基本ファイルには何も先回りして
+追加していない。このスキルを実行したときだけ Supabase 関連の依存・ファイルが増える。
+
+PC で Docker を使ってローカルの Supabase スタックを立てて開発したい場合は、
+このスキルの代わり（または併用）に `/supabase-local` を使う。アプリ側の
+クライアントコードは共通で、接続先の env が変わるだけ。
 
 ## 重要：CLI ではなく Management API（curl）を使う
 

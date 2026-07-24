@@ -1,13 +1,18 @@
-# Expo + Claude Code テンプレート（スマホだけで開発）
+# Expo + Claude Code テンプレート（スマホでも PC でも開発できる）
 
-PC・Xcode・Android Studio を一切使わず、**スマホと Claude Code だけ**で
-Expo / React Native アプリを開発するためのテンプレートリポジトリです。
+Expo / React Native アプリを **スマホと Claude Code だけ**で開発できる
+（PC・Xcode・Android Studio 不要）テンプレートリポジトリです。中身は標準的な
+Expo プロジェクトなので、**手元の PC で普通にローカル開発する**こともできます。
 
-コードの編集とコミットは Claude Code が行い、実機での動作確認は GitHub
-Actions が立ち上げる Expo トンネル経由で行います。ローカルで
-`npx expo start` を動かす必要はありません。
+- **スマホだけで開発** … コードの編集とコミットは Claude Code が行い、実機での
+  動作確認は GitHub Actions が立ち上げる Expo トンネル経由で行います。ローカルで
+  `npx expo start` を動かす必要はありません（下記「開発フロー（スマホだけ）」）。
+- **PC で開発** … `npm install && npm start` で Metro を起動し、同一 LAN の
+  スマホ実機や iOS/Android シミュレータで確認します（下記「PC でローカル開発する」）。
 
-## 開発フロー
+どちらか一方だけでも、両方を併用してもかまいません。
+
+## 開発フロー（スマホだけ）
 
 1. Claude Code がコードを編集し、コミットを push する。
 2. `develop` への push（または Claude Code の `/start-tunnel` スキル、Actions タブ /
@@ -24,6 +29,33 @@ Actions が立ち上げる Expo トンネル経由で行います。ローカル
 
 Codespaces / devcontainer は使いません（パーソナルアクセストークン不要・課金なしで Actions ジョブ内で
 直接トンネルを動かすほうが単純で確実なため）。
+
+## PC でローカル開発する
+
+手元の PC に開発環境がある場合は、Actions のトンネルを介さずに直接開発できます。
+特別な設定は不要です。
+
+```
+npm install
+npm start        # Metro が起動し、QR コードとメニューが出る
+```
+
+- **スマホ実機（同一 LAN）** … 表示された QR を Expo Go で読み取る。
+- **iOS シミュレータ**（macOS + Xcode）… `i` または `npm run ios`。
+- **Android エミュレータ**（Android Studio）… `a` または `npm run android`。
+- **LAN 接続がうまくいかない時** … `npm run tunnel`（`npx expo start --tunnel`）。
+  Actions のトンネルと同じ ngrok 経由になります。
+
+Claude Code で `/start-local` スキルを実行すると、この起動を代行させることも
+できます。
+
+> **前提**: Node.js（LTS。CI は Node 22）と npm。実機で開くには PC とスマホが
+> 同一 LAN にあり、スマホに Expo Go が入っていること。iOS/Android
+> シミュレータを使う場合のみ Xcode / Android Studio が必要です。
+
+> **Web プレビューは対象外**: このテンプレートは `expo start --web` を想定して
+> おらず、`react-dom` / `react-native-web` などの Web 依存も入れていません。
+> UI 確認はスマホ実機かシミュレータで行ってください。
 
 ## 新しいプロジェクトでの初回セットアップ
 
@@ -96,10 +128,12 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 テンプレートの基本ファイルには何も先回りして追加していません。次の2つの
 スキルを実行したときだけ、関連ファイル・依存が増えます。
 
-- `/setup-supabase` — Supabase プロジェクトを作成し、`@supabase/supabase-js`
+- `/setup-supabase` — ホスト型 Supabase プロジェクトを作成し、`@supabase/supabase-js`
   クライアントを配線する（一度きり）。
 - `/migrate-supabase` — マイグレーション SQL を書いてリモート DB に適用し、
   TypeScript の型を再生成する（繰り返し使う）。
+- `/supabase-local` — **（PC 向け）** 手元の PC で Docker + `supabase` CLI を使い、
+  ローカルの Supabase スタックを起動して開発する。下記「ローカル起動」参照。
 
 立ち上げ手順（トークンのセット以外は Claude Code が自動実行）：
 
@@ -117,6 +151,38 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 > Supabase の **Management API を curl で** 叩いてプロジェクト作成・SQL 適用・
 > 型生成を行います（curl はプロキシの CA を信頼できるため確実に動作。実際に
 > エンドツーエンドで検証済み）。ユーザーが CLI を意識する必要はありません。
+
+### ローカル起動（PC 向け・`/supabase-local`）
+
+PC に Docker がある場合は、ホスト型の代わりに（または併用で）ローカルの Supabase
+スタックを立てて開発できます。上の「Management API を使う」制約は Claude の
+**リモート実行環境**の話であって、**ユーザーの PC 上では `supabase` CLI が正規の
+手段**です（ローカルスタックを立てる API は存在しないため CLI が必須）。
+
+`/supabase-local` を実行すると、Claude が `supabase/config.toml` と
+`.env.local.example` を用意します。あとはユーザーが手元の PC で：
+
+```sh
+# 準備: Docker Desktop を起動し、supabase CLI を入れる
+#       （例: brew install supabase/tap/supabase）
+supabase start                 # ローカルスタック起動。API URL と anon key を出力
+cp .env.local.example .env.local   # URL / anon key を記入（実機なら URL は PC の LAN IP）
+npm start                      # Metro が .env.local を読み、ローカル Supabase を向く
+
+supabase migration up          # supabase/migrations/*.sql をローカルDBに適用
+supabase gen types typescript --local > lib/database.types.ts   # 型を生成
+```
+
+- **切替は `.env.local`**：存在すればローカル（`.env` より優先）、外せばホスト型に
+  戻ります。`.env.local` は `.gitignore` 済み（`.env*.local`）でコミットされません。
+- **マイグレーション SQL はホスト型と共通**。`/migrate-supabase` で作った
+  `supabase/migrations/*.sql` を、ローカル（`supabase migration up`）にもリモート
+  にも同じように適用できます。
+- 実機（同一 LAN）で開くときは接続先 URL を `127.0.0.1` ではなく PC の LAN IP に
+  します（Android エミュレータは `10.0.2.2`、iOS シミュレータは `127.0.0.1`）。
+
+ローカル運用ではリモートの Management API 通信が発生しないため、下記のネットワーク
+許可はホスト型（`/setup-supabase` / `/migrate-supabase`）を使うときにのみ必要です。
 
 ### ネットワーク設定（重要）
 
@@ -159,6 +225,12 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 - `lib/database.types.ts`（`/migrate-supabase` で生成される型。マイグレーション
   適用のたびに更新される）
 
+`/supabase-local`（ローカル起動）を使う場合は、さらに以下が生成されます：
+
+- `supabase/config.toml`（コミット対象。`supabase start` が読むローカル設定）
+- `.env.local.example`（コミット対象。ローカル接続の上書きテンプレート）
+- `.env.local`（`.gitignore` 対象。ユーザーが PC で作成。ローカル URL / anon キー）
+
 **注意**：Expo は `EXPO_PUBLIC_` 接頭辞の付いた環境変数だけをアプリのバンドルに
 埋め込みます。そのため `.env` に置くのは公開してよい `anon` / `publishable`
 キーのみにしてください。`service_role` キーなどの秘密情報を `EXPO_PUBLIC_`
@@ -166,25 +238,32 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 
 ## 動作確認
 
-このテンプレートは **PC を前提にしません**（スマホ + Claude Code のみ）。
-`npx expo start --web` のようなローカルのブラウザプレビューは、その画面を
-スマホから見る手段が無いため使いません。UI・動作の確認は `/start-tunnel` で
-トンネルを起動し、スマホの Expo Go 実機で行います。
+UI・動作の確認は開発スタイルに応じて 2 通りです。
+
+- **スマホだけで開発** … `/start-tunnel` でトンネルを起動し、スマホの Expo Go
+  実機で行います。PC もローカル実行も不要です。
+- **PC で開発** … `/start-local`（`npm start`）で Metro を起動し、スマホ実機
+  （同一 LAN）か iOS/Android シミュレータで行います。
+
+`npx expo start --web` のようなブラウザプレビューは、Web 依存を入れていない
+ため使いません（UI 確認は実機かシミュレータで）。
 
 型チェック（`npx tsc --noEmit`）などコードレベルの検証は Claude Code の実行
 環境で走り、結果がテキストで返るのでスマホからでも確認できます。
 
 ## Claude Code のスキル
 
-このテンプレートには、スマホからの開発を助けるスキルが同梱されています。
+このテンプレートには、スマホ / PC どちらの開発も助けるスキルが同梱されています。
 
 | スキル | 用途 | 自然文での呼び出し例 |
 | --- | --- | --- |
 | `/init-project` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更、任意で Supabase 誘導） | 「セットアップして」「このテンプレートを初期化して」 |
-| `/start-tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/start-tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（スマホだけで開発する場合） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/start-local` | PC の手元で `npm start`（Metro）を起動し、LAN のスマホ実機やシミュレータで開く | 「PCで開発したい」「ローカルで起動して」 |
 | `/check-sdk` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
 | `/setup-supabase` | Supabase プロジェクトを Management API で作成し、クライアントを配線（一度きり） | 「Supabaseを使いたい」「バックエンドが欲しい」 |
 | `/migrate-supabase` | マイグレーション SQL を書いてリモート DB に適用し、型を再生成（繰り返し使う） | 「テーブルを追加して」「マイグレーション実行して」 |
+| `/supabase-local` | PC で Docker + `supabase` CLI を使いローカルの Supabase を起動して開発（`config.toml` / `.env.local.example` を用意） | 「Supabaseをローカルで動かしたい」「supabase startしたい」 |
 
 スラッシュコマンドを直接使わなくても、上記のような自然な日本語の指示で
 Claude Code が該当スキルを判断して実行します。
@@ -193,7 +272,7 @@ Claude Code が該当スキルを判断して実行します。
 
 ```
 .github/workflows/expo-tunnel.yml  トンネル起動 + GitHub 通知
-.claude/skills/                    Claude Code スキル（init-project / start-tunnel / check-sdk / setup-supabase / migrate-supabase）
+.claude/skills/                    Claude Code スキル（init-project / start-tunnel / start-local / check-sdk / setup-supabase / migrate-supabase / supabase-local）
 CLAUDE.md                         開発フローと SDK バージョンの注意点（Claude 向け）
 App.tsx                            アプリのエントリー（ここから書き始める）
 index.ts                           ルート登録
@@ -202,6 +281,8 @@ package.json                      SDK 固定済みの依存関係
 tsconfig.json                     TypeScript 設定
 assets/                           アイコン / スプラッシュ画像（差し替え可）
 supabase/migrations/              （オプション）/migrate-supabase で作成するマイグレーション SQL
+supabase/config.toml              （オプション）/supabase-local で作成。supabase start 用のローカル設定
 lib/                              （オプション）/setup-supabase 実行時に生成。supabase.ts / database.types.ts
 .env.example                      （オプション）Supabase の環境変数プレースホルダ（コミット対象）
+.env.local.example                （オプション）/supabase-local で作成。ローカル接続の上書きテンプレート
 ```

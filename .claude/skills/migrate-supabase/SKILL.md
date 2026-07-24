@@ -77,5 +77,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, { .
   （`drop` / `truncate` など）は事前にユーザーへ確認する。
 - 適用は「未適用ファイルのみ」。既に記録済みのバージョンはスキップされる。
   一度適用した内容を変えたい場合は、新しいマイグレーションを追加して打ち消す。
-- ローカル Docker（`supabase start`）は使わない前提。常にリモートの
-  リンク済みプロジェクトに対して直接適用する。
+- このスキル（`push.sh`）は Claude のリモート環境から Management API 経由で
+  **ホスト型プロジェクト**に直接適用する（ローカル Docker は使わない）。PC で
+  ローカルスタックに適用したい場合は、同じ `supabase/migrations/*.sql` を手元の
+  CLI で `supabase migration up` する（`/supabase-local` 参照）。マイグレーション
+  SQL は両者で共通に使える。

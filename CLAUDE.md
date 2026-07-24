@@ -1,10 +1,21 @@
-# Expo + Claude Code：スマホだけで開発するテンプレート
+# Expo + Claude Code：スマホでも PC でも開発できるテンプレート
 
-このリポジトリは、PC・Xcode・Android Studio を使わず、自分のマシンで
-`npx expo start` を動かすこともなく、**スマホと Claude Code だけ**で
-Expo / React Native アプリを開発するためのテンプレートです。
+このリポジトリは、Expo / React Native アプリを **スマホと Claude Code だけ**で
+開発できる（PC・Xcode・Android Studio 不要）ように作られたテンプレートです。
+同時に、**手元の PC で普通にローカル開発する**こともできます —— 中身は標準的な
+Expo プロジェクトなので、`npm install && npm start` でそのまま Metro が立ち上がり
+ます。
 
-## 仕組み
+- **スマホだけで開発する場合** … GitHub Actions 上で Expo トンネルを起動し、
+  スマホの Expo Go で `exp://` URL / QR を開く（下記「仕組み」）。PC もローカル
+  実行も不要。
+- **PC で開発する場合** … 手元で `npm start`（`/start-local` スキル）を実行し、
+  実機（同一 LAN の Expo Go）や iOS/Android シミュレータで開く。詳細は下記
+  「PC でローカル開発する場合」を参照。
+
+以下の「仕組み」はスマホだけで開発する場合の中心的な仕組みの説明です。
+
+## 仕組み（スマホだけで開発する場合）
 
 1. Claude Code（このセッション）がコードを編集し、コミットを push する。
 2. `develop` への push（または Actions タブ／GitHub モバイルアプリからの
@@ -85,16 +96,58 @@ Expo Go ビルドが 2026 年 5 月頃から Apple App Store の審査で止ま�
 新しいプロジェクトを始める前にこの状況を必ず再確認すること —— これを読む
 頃には状況はおそらく変わっている。
 
+**PC 開発でもこの固定方針は変えない。** スマホの Expo Go 実機で開くことを常に
+選択肢として残すため、SDK は「今ストアに出ている Expo Go が対応する版」に合わせ
+続ける。PC のシミュレータや development build なら理論上は最新 SDK も動くが、
+スマホ運用と食い違うと混乱するので、両版とも同じ固定 SDK で揃える。
+
+## PC でローカル開発する場合
+
+手元の PC に開発環境がある人向け。中身は素の Expo プロジェクトなので特別な
+設定は要らない。**スマホだけで開発するなら、この節は読み飛ばしてよい**
+（トンネル運用だけで完結する）。
+
+### 前提
+
+- Node.js（LTS。CI ランナーは Node 22 を使用）と npm。
+- 実機で開くなら、PC とスマホが**同一 LAN** にあり、スマホに Expo Go が入って
+  いること。
+- iOS シミュレータには Xcode（macOS のみ）、Android エミュレータには
+  Android Studio が必要。持っていなければ実機（LAN）で十分。
+
+### 手順
+
+```
+npm install
+npm start        # Metro が起動し、QR コードとメニューが出る
+```
+
+- スマホ実機（同一 LAN）… 表示された QR を Expo Go で読む。
+- iOS シミュレータ … ターミナルで `i`（または `npm run ios`）。
+- Android エミュレータ … `a`（または `npm run android`）。
+- LAN がうまくいかない時 … `npx expo start --tunnel`（`@expo/ngrok` は devDependency
+  に入っている）。GitHub Actions のトンネルと同じ経路になる。
+
+ローカル起動は `/start-local` スキルにまとめてある。
+
+### Web プレビューについて
+
+このテンプレートは **Web（`expo start --web`）を対象にしていない**。`react-dom` /
+`react-native-web` 等の Web 依存を入れておらず、`app.json` も Web 向けに構成して
+いない。UI 確認はスマホ実機か iOS/Android シミュレータで行う。
+
 ## Supabase 対応（バックエンドが必要なとき）
 
 バックエンド（DB / Auth / Storage）が必要になったら Supabase を使う。
 テンプレートの基本ファイルには何も先回りして追加していない —— オプトインの
-2スキルで完結する：
+スキルで完結する：
 
-- **`/setup-supabase`**（一度きり）—— Supabase プロジェクトを作成し、
+- **`/setup-supabase`**（一度きり）—— ホスト型 Supabase プロジェクトを作成し、
   `@supabase/supabase-js` クライアントを配線する。
 - **`/migrate-supabase`**（繰り返し使う）—— マイグレーション SQL を書いて
   リモート DB に適用し、`lib/database.types.ts` を再生成する。
+- **`/supabase-local`**（PC 向け）—— ユーザーの PC で Docker + `supabase` CLI を
+  使い、ローカルの Supabase スタックを起動して開発する。下記「ローカル起動」参照。
 
 ### 重要：`supabase` CLI は使わず Management API（curl）を使う
 
@@ -157,15 +210,42 @@ Management API と Supabase への通信が必要なので、環境のネット�
 `service_role` キーなど秘密情報は絶対に `EXPO_PUBLIC_` 変数にしないこと
 （クライアント側から丸見えになる）。
 
+### ローカル起動（PC 向け、`/supabase-local`）
+
+PC に Docker がある人は、ホスト型の代わりに（または併用で）ローカルの Supabase
+スタックを立てて開発できる。`supabase start`（CLI + Docker）は必ず**ユーザーの
+PC 上**で動かす —— Claude のリモート環境には Docker が無く、Bun 製 CLI も前述の
+プロキシと非互換なため。したがって `/supabase-local` は `/start-local` と同じく
+「Claude が設定ファイルを用意し、CLI 実行はユーザーが手元で行う」形をとる。
+
+- Claude 側が用意（コミット）… `supabase/config.toml`、`.env.local.example`。
+- ユーザー側が PC で実行 … Docker 起動 → `supabase start` → 出力された URL /
+  anon key を `.env.local` に記入 → `npm start` → 必要なら
+  `supabase migration up` / `supabase gen types typescript --local`。
+- **切替スイッチは `.env.local`**。`.env.local` は `.env` より優先して読まれ、かつ
+  `.gitignore`（`.env*.local`）対象。存在すればローカル、外せばホスト型に戻る。
+- 実機（同一 LAN）で使うときは URL を `127.0.0.1` ではなく **PC の LAN IP** にする
+  （Android エミュレータは `10.0.2.2`、iOS シミュレータは `127.0.0.1`）。
+- **マイグレーション SQL（`supabase/migrations/*.sql`）はホスト型と共通**。同じ
+  ファイルをローカル（`supabase migration up`）にもリモート（`push.sh`）にも適用
+  できる。
+
 ## 動作確認
 
-このテンプレートは **PC を前提にしない**（スマホ + Claude Code のみ）。
-`npx expo start --web` のようなローカルのブラウザプレビューは、その画面を
-スマホから見る手段が無いため使わない。UI とロジックの確認は、`/start-tunnel` で
-トンネルを起動し、スマホの Expo Go 実機で行う。
+UI とロジックの動作確認は、開発スタイルに応じて 2 通り：
 
-型エラーなどコードレベルの検証は `npx tsc --noEmit` で行える（Claude Code の
-実行環境で走り、結果はテキストで返るのでスマホからでも確認できる）。
+- **スマホだけで開発する場合** … `/start-tunnel` でトンネルを起動し、スマホの
+  Expo Go 実機で確認する。PC もローカル実行も不要。`npx expo start --web` の
+  ようなブラウザプレビューは、その画面をスマホから見る手段が無いうえ Web 依存も
+  入れていないため使わない。
+- **PC で開発する場合** … `/start-local`（`npm start`）で Metro を起動し、
+  スマホ実機（同一 LAN）か iOS/Android シミュレータで確認する。Web プレビューは
+  対象外（「PC でローカル開発する場合」参照）。
+
+どちらのスタイルでも、型エラーなどコードレベルの検証は `npx tsc --noEmit` で
+行える（Claude Code の実行環境で走り、結果はテキストで返るのでスマホからでも
+確認できる）。Claude Code のセッション自体はスマホからでも操作できるので、
+PC 開発と併用しても問題ない。
 
 ## 利用できるスキル
 
@@ -174,7 +254,11 @@ Management API と Supabase への通信が必要なので、環境のネット�
   アプリ名変更）。初回セットアップを求められたらまずこれ。最後に任意で
   Supabase セットアップ（`/setup-supabase`）への誘導も行う。
 - **`/start-tunnel`** — Expo トンネルを起動し、`exp://` URL / QR を取得する。
-  「アプリを実機で動かしたい」「トンネルを立てて」等で使う。
+  「アプリを実機で動かしたい」「トンネルを立てて」等で使う（スマホだけで開発
+  する場合の中心）。
+- **`/start-local`** — PC の手元で `npm start`（Metro）を起動し、同一 LAN の
+  スマホ実機や iOS/Android シミュレータで開く。「PC で開発したい」「ローカルで
+  起動して」等で使う。
 - **`/check-sdk`** — 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して
   固定する。新規プロジェクト開始前や「incompatible」エラー時に使う。
 - **`/setup-supabase`** — Supabase プロジェクトを Management API（curl）で作成し、
@@ -183,3 +267,6 @@ Management API と Supabase への通信が必要なので、環境のネット�
 - **`/migrate-supabase`** — マイグレーション SQL を書いてリモート DB に適用し、
   型を再生成する（繰り返し使う）。「テーブルを追加して」「マイグレーション
   実行して」等で使う。
+- **`/supabase-local`** — PC で Docker + `supabase` CLI を使い、ローカルの Supabase
+  スタックを起動して開発する（`config.toml` / `.env.local.example` を用意し、
+  手元の `supabase start` を案内）。「Supabase をローカルで動かしたい」等で使う。
