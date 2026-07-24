@@ -8,19 +8,22 @@ description: Initialize this Expo phone-only template for a new project — crea
 このテンプレート（Expo をスマホだけで開発する構成）を新しいプロジェクト用に
 初期化する。`CLAUDE.md` の「初回セットアップ」を自動で実行する。
 
+## 重要：`gh` CLI ではなく GitHub MCP ツールを使う
+
+この環境（Claude Code on the web）のセッション側には **`gh` CLI が無い**
+（`gh` が入っているのはトンネルを動かす GitHub Actions ランナー側で、別環境）。
+そのため GitHub 操作（ユーザー名検出・Issue 作成）は **Claude が GitHub MCP
+ツールで直接**行い、その結果を `configure.sh`（ファイル書き換え専用）に渡す。
+追加のトークンやインストールは不要（MCP はセッション標準で使える）。
+
 ## 実行手順
 
 ### 1. 前提を確認する
 
-以下を順に確認し、問題があればユーザーに知らせて中断する。
-
 - カレントがこのテンプレートのルートか（`.github/workflows/expo-tunnel.yml`
   が存在するか）。
-- `gh` CLI がインストールされ、ログイン済みか：`gh auth status`。
-  未ログインなら、ユーザーに「プロンプトで `!gh auth login` を実行して」と伝える
-  （対話ログインはこのセッションからは代行できない）。
-- リモートの GitHub リポジトリが設定済みか：`gh repo view --json nameWithOwner`。
-  まだなら、先に新リポジトリを作成／push するよう案内する。
+- GitHub MCP ツールが使えるか（`get_me` が通るか）。通らない場合は GitHub
+  連携がまだされていないので、その旨をユーザーに伝える。
 
 ### 2. 必要な値をユーザーに確認する
 
@@ -34,25 +37,44 @@ description: Initialize this Expo phone-only template for a new project — crea
 
 `NOTIFY_USER` はログイン中の GitHub アカウントから自動検出するので聞かない。
 
-### 3. セットアップスクリプトを実行する
+### 3. GitHub 操作を MCP ツールで行う
 
-このスキルと同じフォルダの `configure.sh` を、確認した値で実行する：
+- **ユーザー名（NOTIFY_USER）** … `get_me` の `login` を使う。
+- **対象リポジトリ** … 通常はカレントのリモート（`git remote get-url origin`
+  から `owner/repo` を導出）を使う。
+- **トラッキング Issue**（新規作成の場合）… `issue_write`（create）で作成する。
+  - タイトル例: `Expo tunnel status`
+  - 本文例: 「Expo トンネルの状態通知用の Issue です。Expo Tunnel ワークフローが
+    実行されるたびに、この Issue に `exp://` URL とスキャン用の QR コードが
+    コメントされます。クローズしないでください。」
+  - 返ってきた **Issue 番号** を控える。既存 Issue を使う場合はその番号を使う。
+  - 作成が `403 Resource not accessible by integration` で失敗する場合は、
+    「Claude」GitHub App のリポジトリ権限（`Issues: write` など）が不足している。
+    README のトラブルシューティングを案内する。
+
+### 4. セットアップスクリプトを実行する
+
+このスキルと同じフォルダの `configure.sh` に、手順3で得た値を渡して実行する
+（このスクリプトは `gh` を使わず、ファイル書き換えだけを行う）：
 
 ```sh
 .claude/skills/init-project/configure.sh \
+  --issue <Issue番号> \
+  --notify-user <get_meのlogin> \
   --branch <dev-branch> \
   --slug <app-slug> \
   --name "<表示名>"
 ```
 
-- 既存 Issue を使う場合は `--issue <番号>` を付ける（新規作成をスキップ）。
+- `--issue` と `--notify-user` は必須。
+- `--branch` を省くと `push.branches` は既定（`develop`）のまま。
 - `--slug` / `--name` を省けばアプリ名は変更しない。
 
-スクリプトがやること：`gh` でユーザー名を検出 → トラッキング用 Issue を作成 →
-`expo-tunnel.yml` の `STATUS_ISSUE_NUMBER` / `NOTIFY_USER` / `push.branches`
-を書き換え → 指定があれば `app.json` / `package.json` の名前を変更。
+スクリプトがやること：`expo-tunnel.yml` の `STATUS_ISSUE_NUMBER` /
+`NOTIFY_USER` / `push.branches` を書き換え → 指定があれば
+`app.json` / `package.json` の名前を変更。
 
-### 4. 結果を確認して報告する
+### 5. 結果を確認して報告する
 
 - `git diff .github/workflows/expo-tunnel.yml app.json package.json` で
   変更内容を確認する。
@@ -62,7 +84,7 @@ description: Initialize this Expo phone-only template for a new project — crea
   Expo Tunnel を手動実行）すると、トンネルが立ち上がり Issue に `exp://` URL と
   QR コードが通知される。
 
-### 5. （オプション）Supabase バックエンドのセットアップを提案する
+### 6. （オプション）Supabase バックエンドのセットアップを提案する
 
 初回セットアップの締めくくりに、バックエンド（DB / Auth / Storage）が必要か
 どうかをユーザーに確認する。**これは任意**であり、不要なら飛ばしてよい。
@@ -84,9 +106,14 @@ description: Initialize this Expo phone-only template for a new project — crea
 
 ## 注意
 
-- secret もパーソナルアクセストークンも不要。ワークフロー自身の `permissions: issues: write` だけで
-  Issue にコメントできる。
-- スクリプトが `gh` 未ログインやリポジトリ未設定で失敗した場合は、その原因を
-  ユーザーに伝え、解消してから再実行する。
+- パーソナルアクセストークンは不要。Issue 作成はセッションの GitHub MCP
+  ツール（＝「Claude」GitHub App の権限）で行い、実行中のトンネル通知は
+  ワークフロー自身の `permissions: issues: write` で行う。
+- Issue 作成が `403 Resource not accessible by integration` になる場合は、
+  「Claude」GitHub App のリポジトリ権限不足。README のトラブルシューティング
+  （`Issues / Contents / Actions: Read and write`）を確認する。
+- `configure.sh` は `git rev-parse` でリポジトリルートを判定してファイルを
+  書き換えるだけ。GitHub 操作（`get_me` / Issue 作成）は手順3で Claude が
+  MCP ツールで済ませてから渡すこと。
 - SDK バージョンの固定については `CLAUDE.md` の該当セクションを参照
   （このスキルの範囲外）。

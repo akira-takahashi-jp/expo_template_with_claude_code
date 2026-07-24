@@ -27,11 +27,12 @@ Codespaces の課金も発生せず、より単純に安定動作させられた
 ## このテンプレートから新しいリポジトリを作るときの初回セットアップ
 
 **自動化あり:** `/init-project` スキル（`.claude/skills/init-project/`）を
-使うと、以下を自動で実行できる —— `gh` でトラッキング用 Issue を作成し、
-ログイン中のアカウントから `NOTIFY_USER` を検出し、`expo-tunnel.yml` の
-`STATUS_ISSUE_NUMBER` / `NOTIFY_USER` / `push.branches` を書き換え、必要なら
-`app.json` / `package.json` のアプリ名も変更する。ユーザーが初回セットアップを
-求めたら、まずこのスキルを使うこと。以下は同じ内容を手動で行う場合の手順：
+使うと、以下を自動で実行できる —— GitHub MCP ツールでトラッキング用 Issue を
+作成し、ログイン中のアカウント（`get_me`）から `NOTIFY_USER` を検出し、
+`expo-tunnel.yml` の `STATUS_ISSUE_NUMBER` / `NOTIFY_USER` / `push.branches` を
+書き換え、必要なら `app.json` / `package.json` のアプリ名も変更する。ユーザーが
+初回セットアップを求めたら、まずこのスキルを使うこと。以下は同じ内容を手動で
+行う場合の手順：
 
 - 新リポジトリにトラッキング用の Issue を 1 つ作成し（タイトルは任意）、
   その番号を控える。
@@ -39,9 +40,12 @@ Codespaces の課金も発生せず、より単純に安定動作させられた
   - `env.STATUS_ISSUE_NUMBER` → その Issue の番号
   - `env.NOTIFY_USER` → 自分の GitHub ユーザー名
   - `push.branches` のリスト → `develop` 以外を使うなら自分の開発ブランチ名
-- secret もパーソナルアクセストークンも不要。`gh` は GitHub ホストランナーにプリインストール済みで、
-  ワークフロー自身の `permissions: issues: write` だけでトラッキング用 Issue に
-  コメントできる。
+- secret もパーソナルアクセストークンも不要。**Claude Code のセッション側には
+  `gh` CLI は無い**ため、Issue 作成は GitHub MCP ツール（＝「Claude」GitHub App
+  の権限）で行う。一方、トンネル起動後に Issue へ `exp://` URL を書き込むのは
+  **GitHub Actions ランナー側**で、そこには `gh` がプリインストール済みなので
+  ワークフロー自身の `permissions: issues: write` だけでコメントできる
+  （セッションとランナーは別環境という点に注意）。
 
 ## 最重要：Expo SDK は「App Store の Expo Go が実際に対応する版」に固定する
 

@@ -39,8 +39,12 @@ Codespaces / devcontainer は使いません（パーソナルアクセストー
    - `push.branches` → 使う開発ブランチ名（無ければ `workflow_dispatch`
      のみでも動く）
 4. `app.json` と `package.json` の `name` / `slug` を新プロジェクト用に変更する。
-5. secret やパーソナルアクセストークンの追加設定は不要。`gh` はランナーにプリインストール済みで、
-   ワークフロー自身の `permissions: issues: write` だけで Issue にコメントできる。
+5. secret やパーソナルアクセストークンの追加設定は不要。トンネル起動後に
+   Issue へ `exp://` URL を書き込むのは GitHub Actions ランナー側で、そこには
+   `gh` がプリインストール済みなので、ワークフロー自身の
+   `permissions: issues: write` だけで Issue にコメントできる。
+   （`/init-project` を使う場合の Issue 作成は、Claude Code セッションの GitHub
+   MCP ツールで行います。セッション側には `gh` は入っていません。）
 
 ## トラブルシューティング
 
