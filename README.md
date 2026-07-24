@@ -1,13 +1,18 @@
-# Expo + Claude Code テンプレート（スマホだけで開発）
+# Expo + Claude Code テンプレート（スマホでも PC でも開発できる）
 
-PC・Xcode・Android Studio を一切使わず、**スマホと Claude Code だけ**で
-Expo / React Native アプリを開発するためのテンプレートリポジトリです。
+Expo / React Native アプリを **スマホと Claude Code だけ**で開発できる
+（PC・Xcode・Android Studio 不要）テンプレートリポジトリです。中身は標準的な
+Expo プロジェクトなので、**手元の PC で普通にローカル開発する**こともできます。
 
-コードの編集とコミットは Claude Code が行い、実機での動作確認は GitHub
-Actions が立ち上げる Expo トンネル経由で行います。ローカルで
-`npx expo start` を動かす必要はありません。
+- **スマホだけで開発** … コードの編集とコミットは Claude Code が行い、実機での
+  動作確認は GitHub Actions が立ち上げる Expo トンネル経由で行います。ローカルで
+  `npx expo start` を動かす必要はありません（下記「開発フロー（スマホだけ）」）。
+- **PC で開発** … `npm install && npm start` で Metro を起動し、同一 LAN の
+  スマホ実機や iOS/Android シミュレータで確認します（下記「PC でローカル開発する」）。
 
-## 開発フロー
+どちらか一方だけでも、両方を併用してもかまいません。
+
+## 開発フロー（スマホだけ）
 
 1. Claude Code がコードを編集し、コミットを push する。
 2. `develop` への push（または Claude Code の `/start-tunnel` スキル、Actions タブ /
@@ -24,6 +29,33 @@ Actions が立ち上げる Expo トンネル経由で行います。ローカル
 
 Codespaces / devcontainer は使いません（パーソナルアクセストークン不要・課金なしで Actions ジョブ内で
 直接トンネルを動かすほうが単純で確実なため）。
+
+## PC でローカル開発する
+
+手元の PC に開発環境がある場合は、Actions のトンネルを介さずに直接開発できます。
+特別な設定は不要です。
+
+```
+npm install
+npm start        # Metro が起動し、QR コードとメニューが出る
+```
+
+- **スマホ実機（同一 LAN）** … 表示された QR を Expo Go で読み取る。
+- **iOS シミュレータ**（macOS + Xcode）… `i` または `npm run ios`。
+- **Android エミュレータ**（Android Studio）… `a` または `npm run android`。
+- **LAN 接続がうまくいかない時** … `npm run tunnel`（`npx expo start --tunnel`）。
+  Actions のトンネルと同じ ngrok 経由になります。
+
+Claude Code で `/start-local` スキルを実行すると、この起動を代行させることも
+できます。
+
+> **前提**: Node.js（LTS。CI は Node 22）と npm。実機で開くには PC とスマホが
+> 同一 LAN にあり、スマホに Expo Go が入っていること。iOS/Android
+> シミュレータを使う場合のみ Xcode / Android Studio が必要です。
+
+> **Web プレビューは対象外**: このテンプレートは `expo start --web` を想定して
+> おらず、`react-dom` / `react-native-web` などの Web 依存も入れていません。
+> UI 確認はスマホ実機かシミュレータで行ってください。
 
 ## 新しいプロジェクトでの初回セットアップ
 
@@ -166,22 +198,28 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 
 ## 動作確認
 
-このテンプレートは **PC を前提にしません**（スマホ + Claude Code のみ）。
-`npx expo start --web` のようなローカルのブラウザプレビューは、その画面を
-スマホから見る手段が無いため使いません。UI・動作の確認は `/start-tunnel` で
-トンネルを起動し、スマホの Expo Go 実機で行います。
+UI・動作の確認は開発スタイルに応じて 2 通りです。
+
+- **スマホだけで開発** … `/start-tunnel` でトンネルを起動し、スマホの Expo Go
+  実機で行います。PC もローカル実行も不要です。
+- **PC で開発** … `/start-local`（`npm start`）で Metro を起動し、スマホ実機
+  （同一 LAN）か iOS/Android シミュレータで行います。
+
+`npx expo start --web` のようなブラウザプレビューは、Web 依存を入れていない
+ため使いません（UI 確認は実機かシミュレータで）。
 
 型チェック（`npx tsc --noEmit`）などコードレベルの検証は Claude Code の実行
 環境で走り、結果がテキストで返るのでスマホからでも確認できます。
 
 ## Claude Code のスキル
 
-このテンプレートには、スマホからの開発を助けるスキルが同梱されています。
+このテンプレートには、スマホ / PC どちらの開発も助けるスキルが同梱されています。
 
 | スキル | 用途 | 自然文での呼び出し例 |
 | --- | --- | --- |
 | `/init-project` | 新規プロジェクトの初期化（Issue 作成・`NOTIFY_USER` 設定・workflow 書き換え・アプリ名変更、任意で Supabase 誘導） | 「セットアップして」「このテンプレートを初期化して」 |
-| `/start-tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（実機で開く） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/start-tunnel` | Expo トンネルを起動し `exp://` URL / QR を取得（スマホだけで開発する場合） | 「トンネル起動して」「アプリを実機で動かしたい」 |
+| `/start-local` | PC の手元で `npm start`（Metro）を起動し、LAN のスマホ実機やシミュレータで開く | 「PCで開発したい」「ローカルで起動して」 |
 | `/check-sdk` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
 | `/setup-supabase` | Supabase プロジェクトを Management API で作成し、クライアントを配線（一度きり） | 「Supabaseを使いたい」「バックエンドが欲しい」 |
 | `/migrate-supabase` | マイグレーション SQL を書いてリモート DB に適用し、型を再生成（繰り返し使う） | 「テーブルを追加して」「マイグレーション実行して」 |
@@ -193,7 +231,7 @@ Claude Code が該当スキルを判断して実行します。
 
 ```
 .github/workflows/expo-tunnel.yml  トンネル起動 + GitHub 通知
-.claude/skills/                    Claude Code スキル（init-project / start-tunnel / check-sdk / setup-supabase / migrate-supabase）
+.claude/skills/                    Claude Code スキル（init-project / start-tunnel / start-local / check-sdk / setup-supabase / migrate-supabase）
 CLAUDE.md                         開発フローと SDK バージョンの注意点（Claude 向け）
 App.tsx                            アプリのエントリー（ここから書き始める）
 index.ts                           ルート登録
