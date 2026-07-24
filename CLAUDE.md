@@ -140,12 +140,14 @@ npm start        # Metro が起動し、QR コードとメニューが出る
 
 バックエンド（DB / Auth / Storage）が必要になったら Supabase を使う。
 テンプレートの基本ファイルには何も先回りして追加していない —— オプトインの
-2スキルで完結する：
+スキルで完結する：
 
-- **`/setup-supabase`**（一度きり）—— Supabase プロジェクトを作成し、
+- **`/setup-supabase`**（一度きり）—— ホスト型 Supabase プロジェクトを作成し、
   `@supabase/supabase-js` クライアントを配線する。
 - **`/migrate-supabase`**（繰り返し使う）—— マイグレーション SQL を書いて
   リモート DB に適用し、`lib/database.types.ts` を再生成する。
+- **`/supabase-local`**（PC 向け）—— ユーザーの PC で Docker + `supabase` CLI を
+  使い、ローカルの Supabase スタックを起動して開発する。下記「ローカル起動」参照。
 
 ### 重要：`supabase` CLI は使わず Management API（curl）を使う
 
@@ -208,6 +210,26 @@ Management API と Supabase への通信が必要なので、環境のネット�
 `service_role` キーなど秘密情報は絶対に `EXPO_PUBLIC_` 変数にしないこと
 （クライアント側から丸見えになる）。
 
+### ローカル起動（PC 向け、`/supabase-local`）
+
+PC に Docker がある人は、ホスト型の代わりに（または併用で）ローカルの Supabase
+スタックを立てて開発できる。`supabase start`（CLI + Docker）は必ず**ユーザーの
+PC 上**で動かす —— Claude のリモート環境には Docker が無く、Bun 製 CLI も前述の
+プロキシと非互換なため。したがって `/supabase-local` は `/start-local` と同じく
+「Claude が設定ファイルを用意し、CLI 実行はユーザーが手元で行う」形をとる。
+
+- Claude 側が用意（コミット）… `supabase/config.toml`、`.env.local.example`。
+- ユーザー側が PC で実行 … Docker 起動 → `supabase start` → 出力された URL /
+  anon key を `.env.local` に記入 → `npm start` → 必要なら
+  `supabase migration up` / `supabase gen types typescript --local`。
+- **切替スイッチは `.env.local`**。`.env.local` は `.env` より優先して読まれ、かつ
+  `.gitignore`（`.env*.local`）対象。存在すればローカル、外せばホスト型に戻る。
+- 実機（同一 LAN）で使うときは URL を `127.0.0.1` ではなく **PC の LAN IP** にする
+  （Android エミュレータは `10.0.2.2`、iOS シミュレータは `127.0.0.1`）。
+- **マイグレーション SQL（`supabase/migrations/*.sql`）はホスト型と共通**。同じ
+  ファイルをローカル（`supabase migration up`）にもリモート（`push.sh`）にも適用
+  できる。
+
 ## 動作確認
 
 UI とロジックの動作確認は、開発スタイルに応じて 2 通り：
@@ -245,3 +267,6 @@ PC 開発と併用しても問題ない。
 - **`/migrate-supabase`** — マイグレーション SQL を書いてリモート DB に適用し、
   型を再生成する（繰り返し使う）。「テーブルを追加して」「マイグレーション
   実行して」等で使う。
+- **`/supabase-local`** — PC で Docker + `supabase` CLI を使い、ローカルの Supabase
+  スタックを起動して開発する（`config.toml` / `.env.local.example` を用意し、
+  手元の `supabase start` を案内）。「Supabase をローカルで動かしたい」等で使う。

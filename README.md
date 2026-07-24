@@ -128,10 +128,12 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 テンプレートの基本ファイルには何も先回りして追加していません。次の2つの
 スキルを実行したときだけ、関連ファイル・依存が増えます。
 
-- `/setup-supabase` — Supabase プロジェクトを作成し、`@supabase/supabase-js`
+- `/setup-supabase` — ホスト型 Supabase プロジェクトを作成し、`@supabase/supabase-js`
   クライアントを配線する（一度きり）。
 - `/migrate-supabase` — マイグレーション SQL を書いてリモート DB に適用し、
   TypeScript の型を再生成する（繰り返し使う）。
+- `/supabase-local` — **（PC 向け）** 手元の PC で Docker + `supabase` CLI を使い、
+  ローカルの Supabase スタックを起動して開発する。下記「ローカル起動」参照。
 
 立ち上げ手順（トークンのセット以外は Claude Code が自動実行）：
 
@@ -149,6 +151,38 @@ Expo Go は Apple の審査待ちのため）。詳細な確認手順は `CLAUDE
 > Supabase の **Management API を curl で** 叩いてプロジェクト作成・SQL 適用・
 > 型生成を行います（curl はプロキシの CA を信頼できるため確実に動作。実際に
 > エンドツーエンドで検証済み）。ユーザーが CLI を意識する必要はありません。
+
+### ローカル起動（PC 向け・`/supabase-local`）
+
+PC に Docker がある場合は、ホスト型の代わりに（または併用で）ローカルの Supabase
+スタックを立てて開発できます。上の「Management API を使う」制約は Claude の
+**リモート実行環境**の話であって、**ユーザーの PC 上では `supabase` CLI が正規の
+手段**です（ローカルスタックを立てる API は存在しないため CLI が必須）。
+
+`/supabase-local` を実行すると、Claude が `supabase/config.toml` と
+`.env.local.example` を用意します。あとはユーザーが手元の PC で：
+
+```sh
+# 準備: Docker Desktop を起動し、supabase CLI を入れる
+#       （例: brew install supabase/tap/supabase）
+supabase start                 # ローカルスタック起動。API URL と anon key を出力
+cp .env.local.example .env.local   # URL / anon key を記入（実機なら URL は PC の LAN IP）
+npm start                      # Metro が .env.local を読み、ローカル Supabase を向く
+
+supabase migration up          # supabase/migrations/*.sql をローカルDBに適用
+supabase gen types typescript --local > lib/database.types.ts   # 型を生成
+```
+
+- **切替は `.env.local`**：存在すればローカル（`.env` より優先）、外せばホスト型に
+  戻ります。`.env.local` は `.gitignore` 済み（`.env*.local`）でコミットされません。
+- **マイグレーション SQL はホスト型と共通**。`/migrate-supabase` で作った
+  `supabase/migrations/*.sql` を、ローカル（`supabase migration up`）にもリモート
+  にも同じように適用できます。
+- 実機（同一 LAN）で開くときは接続先 URL を `127.0.0.1` ではなく PC の LAN IP に
+  します（Android エミュレータは `10.0.2.2`、iOS シミュレータは `127.0.0.1`）。
+
+ローカル運用ではリモートの Management API 通信が発生しないため、下記のネットワーク
+許可はホスト型（`/setup-supabase` / `/migrate-supabase`）を使うときにのみ必要です。
 
 ### ネットワーク設定（重要）
 
@@ -191,6 +225,12 @@ Supabase との通信には、環境のネットワークポリシーで以下�
 - `lib/database.types.ts`（`/migrate-supabase` で生成される型。マイグレーション
   適用のたびに更新される）
 
+`/supabase-local`（ローカル起動）を使う場合は、さらに以下が生成されます：
+
+- `supabase/config.toml`（コミット対象。`supabase start` が読むローカル設定）
+- `.env.local.example`（コミット対象。ローカル接続の上書きテンプレート）
+- `.env.local`（`.gitignore` 対象。ユーザーが PC で作成。ローカル URL / anon キー）
+
 **注意**：Expo は `EXPO_PUBLIC_` 接頭辞の付いた環境変数だけをアプリのバンドルに
 埋め込みます。そのため `.env` に置くのは公開してよい `anon` / `publishable`
 キーのみにしてください。`service_role` キーなどの秘密情報を `EXPO_PUBLIC_`
@@ -223,6 +263,7 @@ UI・動作の確認は開発スタイルに応じて 2 通りです。
 | `/check-sdk` | 今ストアで稼働中の Expo Go に合う SDK バージョンを確認して固定 | 「SDKのバージョンを確認して」「incompatibleエラーが出た」 |
 | `/setup-supabase` | Supabase プロジェクトを Management API で作成し、クライアントを配線（一度きり） | 「Supabaseを使いたい」「バックエンドが欲しい」 |
 | `/migrate-supabase` | マイグレーション SQL を書いてリモート DB に適用し、型を再生成（繰り返し使う） | 「テーブルを追加して」「マイグレーション実行して」 |
+| `/supabase-local` | PC で Docker + `supabase` CLI を使いローカルの Supabase を起動して開発（`config.toml` / `.env.local.example` を用意） | 「Supabaseをローカルで動かしたい」「supabase startしたい」 |
 
 スラッシュコマンドを直接使わなくても、上記のような自然な日本語の指示で
 Claude Code が該当スキルを判断して実行します。
@@ -231,7 +272,7 @@ Claude Code が該当スキルを判断して実行します。
 
 ```
 .github/workflows/expo-tunnel.yml  トンネル起動 + GitHub 通知
-.claude/skills/                    Claude Code スキル（init-project / start-tunnel / start-local / check-sdk / setup-supabase / migrate-supabase）
+.claude/skills/                    Claude Code スキル（init-project / start-tunnel / start-local / check-sdk / setup-supabase / migrate-supabase / supabase-local）
 CLAUDE.md                         開発フローと SDK バージョンの注意点（Claude 向け）
 App.tsx                            アプリのエントリー（ここから書き始める）
 index.ts                           ルート登録
@@ -240,6 +281,8 @@ package.json                      SDK 固定済みの依存関係
 tsconfig.json                     TypeScript 設定
 assets/                           アイコン / スプラッシュ画像（差し替え可）
 supabase/migrations/              （オプション）/migrate-supabase で作成するマイグレーション SQL
+supabase/config.toml              （オプション）/supabase-local で作成。supabase start 用のローカル設定
 lib/                              （オプション）/setup-supabase 実行時に生成。supabase.ts / database.types.ts
 .env.example                      （オプション）Supabase の環境変数プレースホルダ（コミット対象）
+.env.local.example                （オプション）/supabase-local で作成。ローカル接続の上書きテンプレート
 ```
