@@ -36,7 +36,7 @@ gh auth status >/dev/null 2>&1 || { echo "❌ GitHub 未ログイン: gh auth lo
 ISSUE_NUMBER="$(grep -E '^  STATUS_ISSUE_NUMBER:' "$WORKFLOW_FILE" | sed -E 's/^  STATUS_ISSUE_NUMBER:[[:space:]]*//')"
 case "$ISSUE_NUMBER" in
   ''|*REPLACE_*)
-    echo "❌ STATUS_ISSUE_NUMBER が未設定（プレースホルダのまま）です。先に /setup-template を実行してください。" >&2
+    echo "❌ STATUS_ISSUE_NUMBER が未設定（プレースホルダのまま）です。先に /init-project を実行してください。" >&2
     exit 1 ;;
 esac
 

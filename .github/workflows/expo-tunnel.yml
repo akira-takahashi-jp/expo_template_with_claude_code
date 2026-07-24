@@ -4,7 +4,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-      # 開発ブランチ。develop 以外を使うなら書き換えてください（`/setup-template` でも設定可）。
+      # 開発ブランチ。develop 以外を使うなら書き換えてください（`/init-project` でも設定可）。
       - develop
 
 concurrency:
@@ -19,7 +19,7 @@ permissions:
 
 env:
   # ⚠️ SETUP REQUIRED — 下の2つはこのテンプレートのプレースホルダです。
-  # Claude Code で `/setup-template` を実行するか、手動で置き換えてください。
+  # Claude Code で `/init-project` を実行するか、手動で置き換えてください。
   # 置き換えないままだと、通知ステップが実行時に失敗します。
   #
   # トンネル準備完了時に各ランがコメントするトラッキング用 Issue の番号。
@@ -102,7 +102,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$STATUS_ISSUE_NUMBER" = "REPLACE_WITH_ISSUE_NUMBER" ] || [ "$NOTIFY_USER" = "REPLACE_WITH_GITHUB_USERNAME" ]; then
-            echo "::notice::STATUS_ISSUE_NUMBER / NOTIFY_USER is not configured yet (still the template placeholder) — skipping the issue comment notification. Run \`/setup-template\` or edit the env block in this workflow to enable it. Check the job summary above for the exp:// URL instead."
+            echo "::notice::STATUS_ISSUE_NUMBER / NOTIFY_USER is not configured yet (still the template placeholder) — skipping the issue comment notification. Run \`/init-project\` or edit the env block in this workflow to enable it. Check the job summary above for the exp:// URL instead."
           else
             qr_image_url="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(node -e "console.log(encodeURIComponent(process.argv[1]))" "$url")"
             comment_body=$(node -e "

@@ -1,5 +1,5 @@
 ---
-name: sdk-check
+name: check-sdk
 description: Determine and pin the correct Expo SDK version so the project stays compatible with the Expo Go app currently published on the App Store / Play Store. Checks which SDK is live vs stuck in review, fetches the known-good dependency set, updates package.json, reinstalls, and type-checks. Use before starting a new project, when the user reports the "incompatible with this version of Expo Go" error, or when considering an SDK upgrade.
 ---
 
@@ -29,7 +29,7 @@ Apple と Google で状況が違うことがある点に注意。両方に配布
 バージョンを手で推測しない。ヘルパースクリプトで公式テンプレートから取得する：
 
 ```sh
-.claude/skills/sdk-check/check.sh 54    # 54 は手順1で決めた番号
+.claude/skills/check-sdk/check.sh 54    # 54 は手順1で決めた番号
 ```
 
 これで以下が並んで表示される：
